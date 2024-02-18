@@ -2,7 +2,7 @@ module Sticking where
 
 import Prelude
 
-import Timing (TimedNote(..))
+import Timing
 
-alternateSticking :: Array TimedNote -> Array TimedNote
+alternateSticking :: Array TimedGroup -> Array TimedGroup
 alternateSticking _ = [] -- TODO

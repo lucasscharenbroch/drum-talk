@@ -15,13 +15,16 @@ to generate this file without the comments in this block.
   [ "console"
   , "effect"
   , "either"
+  , "foldable-traversable"
   , "integers"
+  , "js-bigints"
   , "lists"
   , "maybe"
   , "naturals"
   , "parsing"
   , "prelude"
   , "rationals"
+  , "transformers"
   , "tuples"
   ]
 , packages = ./packages.dhall

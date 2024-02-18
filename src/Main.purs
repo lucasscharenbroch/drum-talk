@@ -8,9 +8,9 @@ import Timing
 import Effect (Effect)
 import Effect.Console (log)
 import Sticking (alternateSticking)
-import Timing (TimedNote(..))
+import Timing (TimedGroup(..))
 
-compile :: String -> Either String (Array TimedNote)
+compile :: String -> Either String (Array TimedGroup)
 compile = (pure <<< alternateSticking) <=< timeify <=< parse
 
 main :: Effect Unit
