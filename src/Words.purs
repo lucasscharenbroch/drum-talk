@@ -22,7 +22,7 @@ data Articulation = NormalHit
 
 newtype Duration = Duration Rational
 
-data Stick = Left | Right
+data Stick = SLeft | SRight
 
 data GraceNote = GraceNote Atom Stick
 
@@ -38,6 +38,6 @@ type Note =
 -- A point in time, relative to a measure
 newtype Time = Time Rational
 
-newtype AbsoluteWord = AbsoluteWord Time
-
-data RelativeWord = RelativeWord (Array Note) Duration
+data Word = AbsoluteWord Time -- implicit duration
+          | RelativeWord (Array Note) Duration -- implicit time
+          | CompleteWord Time (Array Note) Duration
