@@ -4,7 +4,8 @@ import Prelude
 import Words
 import Data.Either
 
-data TimedNote = TimedNote Note Duration
+data TimedGroup = TimedGroup (Array TimedGroup) Duration
+                | TimedNote Note Duration
 
-timeify :: Array Word -> Either String (Array TimedNote)
+timeify :: Array Word -> Either String (Array TimedGroup)
 timeify _ = Left "" -- TODO
