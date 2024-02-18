@@ -7,12 +7,12 @@ import Data.Maybe
 import Data.Rational
 import Data.Traversable
 import Data.Tuple
+import Data.Array
 import Prelude
 import Tree
 import Words
 
 import Data.Int.Bits ((.&.))
-import Data.Time (Time(..))
 import JS.BigInt (toInt)
 import Parse (Settings, TimeSig(..))
 
@@ -52,23 +52,24 @@ validateStartTime {timeSig: TimeSig sig} (Time t)
 -- Calculates a new time given a start-time, duration, and signature
 addDurationMod :: TimeSig -> Time -> Duration -> Time
 addDurationMod (TimeSig sig) (Time t) (Duration d)
-    | t + d < sig = t + d
-    | otherwise = t + d - sig
+    | t + d < sig = Time $ t + d
+    | otherwise = Time $ t + d - sig
 
 subTimeMod :: TimeSig -> Time -> Time -> Duration
 subTimeMod (TimeSig sig) (Time t1) (Time t2)
-    | t1 - t2 < (0 % 1) = t1 - t2 + sig
-    | otherwise = t1 - t2
+    | t1 - t2 < (0 % 1) = Duration $ t1 - t2 + sig
+    | otherwise = Duration $ t1 - t2
 
 noteTreeToTimedGroup :: Tree WeightedNote -> Duration -> TimedGroup
 noteTreeToTimedGroup (Leaf (WeightedNote note _)) duration = TimedNote note duration
+noteTreeToTimedGroup (Leaf (WeightedRest _)) duration = TimedRest duration
 noteTreeToTimedGroup tree@(Internal _) duration = TimedGroup tree duration
 
 mkDefTimeRange :: Settings -> Time -> TimeRange
 mkDefTimeRange {minDuration, maxDuration, defDuration, timeSig: sig} time = TimeRange early late default
-    where early = Time $ addDurationMod sig time minDuration
-          late = Time $ addDurationMod sig time maxDuration
-          default = Time $ addDurationMod sig time defDuration
+    where early = addDurationMod sig time minDuration
+          late = addDurationMod sig time maxDuration
+          default = addDurationMod sig time defDuration
 
 wordToGroup :: Settings -> Word -> StateT TimeRange (Either String) (Array TimedGroup)
 wordToGroup settings (AbsoluteWord time) = asserts *> res
