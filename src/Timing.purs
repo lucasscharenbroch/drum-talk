@@ -11,16 +11,11 @@ import Data.Array
 import Prelude
 import Tree
 import Words
+import Util
 
 import Data.Int.Bits ((.&.))
 import JS.BigInt (toInt)
 import Parse (Settings, TimeSig(..))
-
--- lower limit, upper limit, default of where a note in a mesure ends
-data TimeRange = TimeRange Time Time Time
-
-mkTimeRange1 :: Time -> TimeRange
-mkTimeRange1 t = TimeRange t t t
 
 data TimedGroup = TimedGroup (Tree WeightedNote) Duration
                 | TimedNote Note Duration
@@ -28,8 +23,12 @@ data TimedGroup = TimedGroup (Tree WeightedNote) Duration
 
 timeify :: Tuple Settings (Array Word) -> Either String (Array TimedGroup)
 timeify (Tuple settings words) = validateSettings settings *> res
-    where zero = TimeRange (Time (0 % 1)) (Time (0 % 1))
-          res = evalStateT (concat <$> traverse (wordToGroup settings) words) $ zero
+    where
+        zero = Tuple (Time (0 % 1)) (Time (0 % 1))
+        res = do
+            times <- scanlM wordToTime zero words
+            let timeDiff = zip times (drop 1 times <> [Time (0 % 1)])
+            pure <<< concat $ zipWith calcDurationAndRests timeDiff words
 
 validateSettings :: Settings -> Either String Unit
 validateSettings {timeSig: TimeSig sig} = res
@@ -65,31 +64,28 @@ noteTreeToTimedGroup (Leaf (WeightedNote note _)) duration = TimedNote note dura
 noteTreeToTimedGroup (Leaf (WeightedRest _)) duration = TimedRest duration
 noteTreeToTimedGroup tree@(Internal _) duration = TimedGroup tree duration
 
-mkDefTimeRange :: Settings -> Time -> TimeRange
-mkDefTimeRange {minDuration, maxDuration, defDuration, timeSig: sig} time = TimeRange early late default
+mkDefTimeRange :: Settings -> Time -> Tuple Time Time
+mkDefTimeRange {minDuration, defDuration, timeSig: sig} time = Tuple early default
     where early = addDurationMod sig time minDuration
-          late = addDurationMod sig time maxDuration
           default = addDurationMod sig time defDuration
 
-wordToGroup :: Settings -> Word -> StateT TimeRange (Either String) (Array TimedGroup)
-wordToGroup settings (AbsoluteWord time) = asserts *> res
+wordToTime :: Settings -> Tuple Time Time -> Word -> (Either String) (Tuple Time Time)
+wordToTime = ?todo -- TODO
+{-
+wordToTime settings (AbsoluteWord time) = asserts *> put newRange *> pure time
     where
         asserts = lift $ validateStartTime settings time
         {timeSig: sig, minDuration, defDuration, maxDuration, defNote} = settings
-        res = do
-            (TimeRange early late _) <- get
-            let space = subTimeMod sig time early -- between early end & start
-            let range = subTimeMod sig late early -- net size of time range
-            put $ mkDefTimeRange settings time
-            let timedNote = TimedNote defNote ?duration -- can't tell the duration here
-            if space > range
-            then pure [TimedRest $ space - range, timedNote]
-            else pure [timedNote]
-wordToGroup {timeSig: sig} (RelativeWord notes duration) = do
+        newRange = mkDefTimeRange settings time
+wordToTime {timeSig: sig} (RelativeWord notes duration) = do
     TimeRange _ _ start <- get
     put <<< mkTimeRange1 $ addDurationMod sig start duration
-    pure [noteTreeToTimedGroup notes duration]
-wordToGroup settings (CompleteWord start notes duration) = asserts *> res
+    pure $ noteTreeToTimedGroup notes duration
+wordToTime settings (CompleteWord start notes duration) = asserts *> res
     where
         asserts = lift $ validateStartTime settings start
         res = lift $ Left "" -- TODO
+        -}
+
+calcDurationAndRests :: Tuple Time Time -> Word -> Array TimedGroup
+calcDurationAndRests = ?todo -- TODO
