@@ -10,8 +10,7 @@ import Data.Rational
 import Data.Tuple
 import Data.Ord
 import Data.Maybe
-
-import Data.Int.Bits ((.&.))
+import Tree
 
 data Stroke = Tap
             | Double
@@ -28,33 +27,39 @@ data Articulation = Normal
 -- the denominator should be a power of 2
 newtype Duration = Duration Rational
 
+derive newtype instance Ord Duration
+derive newtype instance Ring Duration
+
 d4 = Duration (1 % 4) :: Duration
 d8 = Duration (1 % 8) :: Duration
 d16 = Duration (1 % 16) :: Duration
 
 data Stick = SLeft | SRight
 
--- A main-note, optional grace notes, and articulation
+-- A description for how to play a note (no time information involved)
 type Note =
     { numGraceNotes :: Natural
     , stroke :: Stroke
     , articulation :: Articulation
-    , duration :: Duration
     , stick :: Stick
     }
+
+-- A note with duration relative to its neighbors
+data WeightedNote = WeightedNote Note Natural
+                  | WeightedRest Natural
 
 -- A point in time, relative to a measure
 newtype Time = Time Rational
 
+-- Corresponds to a "word" in Drum-Talk
 data Word = AbsoluteWord Time -- implicit duration
-          | RelativeWord (Array Note) Duration -- implicit time
-          | CompleteWord Time (Array Note) Duration
+          | RelativeWord (Tree WeightedNote) Duration -- implicit time
+          | CompleteWord Time (Tree WeightedNote) Duration
 
-mkNote :: Natural -> Stroke -> Articulation -> Duration -> Stick -> Note
-mkNote nGraceNotes stroke artic duration stick =
+mkNote :: Natural -> Stroke -> Articulation -> Stick -> Note
+mkNote nGraceNotes stroke artic stick =
     { numGraceNotes: nGraceNotes
     , stroke: stroke
     , articulation: artic
-    , duration: duration
     , stick: stick
     }
