@@ -12,8 +12,6 @@ newtype TimeSig = TimeSig Rational
 type Settings =
     { timeSig :: TimeSig
     , defDuration :: Duration
-    , minDuration :: Duration
-    , maxDuration :: Duration
     , defNote :: Note
     }
 

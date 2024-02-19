@@ -1,6 +1,5 @@
 module Timing where
 
-import Control.Monad.State.Trans
 import Data.Either
 import Data.Foldable
 import Data.Maybe
@@ -24,7 +23,6 @@ data TimedGroup = TimedGroup (Tree WeightedNote) Duration
 
 type TimeInfo =
     { start :: Time
-    , earlyEnd :: Time
     , defEnd :: Time
     }
 
@@ -32,7 +30,7 @@ timeify :: Tuple Settings (Array Word) -> Either String (Array TimedGroup)
 timeify (Tuple settings words) = validateSettings settings *> res
     where
         zero = Time (0 % 1)
-        zeroI = {start: zero, earlyEnd: zero, defEnd: zero}
+        zeroI = {start: zero, defEnd: zero}
         res = do
             times <- scanlM (wordToTime settings) zeroI words
             let timeDiff = zip times (drop 1 times <> [zeroI])
@@ -76,29 +74,26 @@ wordToTime :: Settings -> TimeInfo -> Word -> Either String TimeInfo
 wordToTime settings _ (AbsoluteWord time) = asserts *> Right res
     where
         asserts = validateStartTime settings time
-        {minDuration, defDuration, timeSig: sig} = settings
+        {defDuration, timeSig: sig} = settings
         res =
             { start: time
-            , earlyEnd: addDurationMod sig time minDuration
             , defEnd: addDurationMod sig time defDuration
             }
-wordToTime {timeSig: sig} lastNoteTime (RelativeWord notes duration) = Right res
+wordToTime {timeSig: sig} lastNoteTime (RelativeWord _ duration) = Right res
     where
         {defEnd: lastDefEnd} = lastNoteTime
         end = addDurationMod sig lastDefEnd duration
         res =
             { start: lastDefEnd
-            , earlyEnd: end
             , defEnd: end
             }
-wordToTime settings lastNoteTime (CompleteWord start notes duration) = asserts *> Right res
+wordToTime settings _ (CompleteWord start _ duration) = asserts *> Right res
     where
         {timeSig: sig} = settings
         asserts = validateStartTime settings start
         end = addDurationMod sig start duration
         res =
             { start
-            , earlyEnd: end
             , defEnd: end
             }
 
