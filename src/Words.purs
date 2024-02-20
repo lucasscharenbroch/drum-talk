@@ -57,9 +57,9 @@ data Word = AbsoluteWord Time -- implicit duration
           | CompleteWord Time (Tree WeightedNote) Duration
 
 mkNote :: Natural -> Stroke -> Articulation -> Stick -> Note
-mkNote nGraceNotes stroke artic stick =
-    { numGraceNotes: nGraceNotes
-    , stroke: stroke
-    , articulation: artic
-    , stick: stick
+mkNote numGraceNotes stroke articulation stick =
+    { numGraceNotes
+    , stroke
+    , articulation
+    , stick
     }
