@@ -1,12 +1,25 @@
 module Parse where
 
-import Data.List
-import Data.Tuple
-import Data.Either
-import Data.Rational
-import Prelude
-import Words
 import Parsing
+import Parsing.Combinators
+import Parsing.String
+import Parsing.String.Basic
+import Prelude
+import Util
+import Words
+
+import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
+import Data.Array.Partial (head, tail)
+import Data.Either (Either(..))
+import Data.Foldable (foldl)
+import Data.Int (fromString)
+import Data.List.Types (toList)
+import Data.Maybe (Maybe(..))
+import Data.Natural (Natural, intToNat)
+import Data.Rational (Rational)
+import Data.String.CodeUnits (singleton, toCharArray)
+import Data.String.Common (toLower, toUpper)
+import Data.Tuple (Tuple(..))
 
 newtype TimeSig = TimeSig Rational
 
@@ -21,68 +34,18 @@ type ParseFn a = Parser String a
 parse :: String -> Either String (Tuple Settings (Array Word))
 parse _ = Left "" -- TODO
 
-{-
+{- Helpers -}
 
-sentence => word+
+capString :: String -> ParseFn Boolean
+capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
+    where chars = toCharArray s
+          eitherCase c = (string <<< toLower $ c') $> false
+                     <|> (string <<< toUpper $ c') $> true
+              where c' = singleton c
 
-word => abs-word | rel-word | complete-word
+{- Productions -}
 
-abs-word => [modifier] time
-          | [modifier] time-spec time
-
-time => number | spelled-number
-      | "e"
-      | "and" | "&" | "+"
-      | "a" | "ah"
-
-time-spec => "[" time "]"
-
-spelled-number => "one" | "two" | "three" | "four" | "five" | "six"
-                | "seven" | "eight" | "nine" | "ten" | "eleven" | "twelve"
-
-number => [0-9]+
-
-rel-word => rudiment
-          | [modifier] misc-sound
-          | word-group
-
-word-group => "(" (space* rel-word space*)+ ")"
-
-space => ' ' | '\t' | '\n'
-
-complete-word => time-spec rel-word
-
-rudiment => "tripulet" | "tpl"
-          | {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
-          | "flamtap" | "ft"
-          | "flamaccent" | "fas"
-          | "flamacue" | "fac"
-          | "pataflafla" | "ptff"
-          | "twentyfive" | "ttf"
-          | "ratamacue" | "rtmc"
-
-* any syllable of a rudiment may have a modifier
-
-misc-sound => "ta" | "da"
-            | "tuh" | "duh"
-
-stroke => "tap" | "t"
-        | "gock" | "x"
-        | "buzz" | "z"
-        | "flam" | "f"
-        | "drag" | "dr"
-        | "double" | "d" | "="
-
-modifier => { mod-flag+ }
-mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
-
-* in any of the above word-returning productions, dashes ('-')
-  between syllables are ignored, and capitilization of a
-  syllable yeilds accented articulation
-
--}
-
--- sentence => word+
+-- sentence => (spaces word spaces)+
 
 -- parseSentence :: ParseFn (Array Word)
 
@@ -90,8 +53,16 @@ mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 
 -- parseWord :: ParseFn Word
 
--- abs-word => [modifier] time
---           | [modifier] time-spec time
+-- abs-word => [modifier] time-artic
+--           | [modifier] time
+--           | [modifier] time-spec spaces time
+
+-- time-artic => spelled-number
+--             | "e"
+--             | "and"
+--             | "a" | "ah"
+
+-- parseTimeArtic :: ParseFn Word
 
 -- parseAbsWord :: ParseFn Word
 
@@ -109,11 +80,23 @@ mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 -- spelled-number => "one" | "two" | "three" | "four" | "five" | "six"
 --                 | "seven" | "eight" | "nine" | "ten" | "eleven" | "twelve"
 
--- parseSpelledNumber :: ParseFn Natural
+parseSpelledNumber :: ParseFn (Tuple Natural Boolean) -- (number, isAccented)
+parseSpelledNumber = foldl1 (<|>) alts
+    where numWords = "one" `cons'` ["two", "three", "four", "five", "six", "seven",
+                              "eight", "nine", "ten", "eleven", "twelve"]
+          numVals = map intToNat (1 `cons'` [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+          alts = zipWith toAlt numWords numVals :: NonEmptyArray (ParseFn (Tuple Natural Boolean))
+          toAlt s n = Tuple n <$> capString s
 
 -- number => [0-9]+
 
--- parseNumber :: ParseFn Natural
+parseNumber :: ParseFn Natural
+parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
+    where stoi' :: String -> ParseFn Int
+          stoi' s = case fromString s of
+              Just 0 -> fail $ "0 is an invalid beat"
+              Just i -> pure i
+              Nothing -> fail $ "Number out of bounds: `" <> s <> "`"
 
 -- rel-word => rudiment
 --           | [modifier] misc-sound
@@ -121,13 +104,14 @@ mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 
 -- parseRelWord :: ParseFn Word
 
--- word-group => "(" (space* rel-word space*)+ ")"
+-- word-group => "(" (spaces rel-word spaces)+ ")"
 
 -- parseWordGroup :: ParseFn Word
 
--- space => ' ' | '\t' | '\n'
+-- spaces => (' ' | '\t' | '\n' | ...)*
 
--- parseSpace :: ParseFn Unit
+parseSpaces :: ParseFn Unit
+parseSpaces = skipSpaces
 
 -- complete-word => time-spec rel-word
 
@@ -159,7 +143,6 @@ mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 
 -- parseStroke :: ParseFn Word
 
-
 -- modifier => { mod-flag+ }
 
 -- parseModifier :: ParseFn (Array Note)
@@ -167,3 +150,7 @@ mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 -- mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 
 -- parseModFlag :: ParseFn Note
+
+-- * in any word-returning productions, dashes ('-')
+--   between syllables are ignored, and capitilization of a
+--   syllable yeilds accented articulation
