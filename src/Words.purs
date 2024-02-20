@@ -52,7 +52,7 @@ data WeightedNote = WeightedNote Note Natural
 newtype Time = Time Rational
 
 -- Corresponds to a "word" in Drum-Talk
-data Word = AbsoluteWord Time -- implicit duration
+data Word = AbsoluteWord Time Note -- implicit duration
           | RelativeWord (Tree WeightedNote) Duration -- implicit time
           | CompleteWord Time (Tree WeightedNote) Duration
 

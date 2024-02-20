@@ -77,7 +77,93 @@ modifier => { mod-flag+ }
 mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
 
 * in any of the above word-returning productions, dashes ('-')
-  are ignored, and capitilization of a syllable yeilds
-  accented articulation
+  between syllables are ignored, and capitilization of a
+  syllable yeilds accented articulation
 
 -}
+
+-- sentence => word+
+
+-- parseSentence :: ParseFn (Array Word)
+
+-- word => abs-word | rel-word | complete-word
+
+-- parseWord :: ParseFn Word
+
+-- abs-word => [modifier] time
+--           | [modifier] time-spec time
+
+-- parseAbsWord :: ParseFn Word
+
+-- time => number | spelled-number
+--       | "e"
+--       | "and" | "&" | "+"
+--       | "a" | "ah"
+
+-- parseTime :: ParseFn Time
+
+-- time-spec => "[" time "]"
+
+-- parseTimeSpec :: ParseFn Time
+
+-- spelled-number => "one" | "two" | "three" | "four" | "five" | "six"
+--                 | "seven" | "eight" | "nine" | "ten" | "eleven" | "twelve"
+
+-- parseSpelledNumber :: ParseFn Natural
+
+-- number => [0-9]+
+
+-- parseNumber :: ParseFn Natural
+
+-- rel-word => rudiment
+--           | [modifier] misc-sound
+--           | word-group
+
+-- parseRelWord :: ParseFn Word
+
+-- word-group => "(" (space* rel-word space*)+ ")"
+
+-- parseWordGroup :: ParseFn Word
+
+-- space => ' ' | '\t' | '\n'
+
+-- parseSpace :: ParseFn Unit
+
+-- complete-word => time-spec rel-word
+
+-- parseCompleteWord :: ParseFn Word
+
+-- rudiment => "tripulet" | "tpl"
+--           | {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
+--           | "flamtap" | "ft"
+--           | "flamaccent" | "fas"
+--           | "flamacue" | "fac"
+--           | "pataflafla" | "ptff"
+--           | "twentyfive" | "ttf"
+--           | "ratamacue" | "rtmc"
+-- * any syllable of a rudiment may have a modifier
+
+-- parseRudiment :: ParseFn Word
+
+-- misc-sound => "ta" | "da"
+--             | "tuh" | "duh"
+
+-- parseMiscSound :: ParseFn Word
+
+-- stroke => "tap" | "t"
+--         | "gock" | "x"
+--         | "buzz" | "z"
+--         | "flam" | "f"
+--         | "drag" | "dr"
+--         | "double" | "d" | "="
+
+-- parseStroke :: ParseFn Word
+
+
+-- modifier => { mod-flag+ }
+
+-- parseModifier :: ParseFn (Array Note)
+
+-- mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
+
+-- parseModFlag :: ParseFn Note
