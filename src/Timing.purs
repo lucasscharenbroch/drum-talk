@@ -71,7 +71,7 @@ treeToTimedGroup (Leaf (WeightedRest _)) duration = TimedRest duration
 treeToTimedGroup tree@(Internal _) duration = TimedGroup tree duration
 
 wordToTime :: Settings -> TimeInfo -> Word -> Either String TimeInfo
-wordToTime settings _ (AbsoluteWord time) = asserts *> Right res
+wordToTime settings _ (AbsoluteWord time _) = asserts *> Right res
     where
         asserts = validateStartTime settings time
         {defDuration, timeSig: sig} = settings
@@ -100,7 +100,7 @@ wordToTime settings _ (CompleteWord start _ duration) = asserts *> Right res
 calcDurationAndRests :: Settings -> Tuple TimeInfo TimeInfo -> Word -> Array TimedGroup
 calcDurationAndRests _ _ (RelativeWord tree duration) = [treeToTimedGroup tree duration]
 calcDurationAndRests _ _ (CompleteWord _ tree duration) = [treeToTimedGroup tree duration]
-calcDurationAndRests settings (Tuple thisNoteTimeI nextNoteTimeI) (AbsoluteWord _) = res
+calcDurationAndRests settings (Tuple thisNoteTimeI nextNoteTimeI) (AbsoluteWord _ _) = res
     where
         {timeSig: sig, defNote, defDuration} = settings
         {start} = thisNoteTimeI
