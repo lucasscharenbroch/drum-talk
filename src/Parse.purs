@@ -1,13 +1,13 @@
 module Parse where
 
+import Note
 import Parsing
 import Parsing.Combinators
 import Parsing.String
 import Parsing.String.Basic
-import Prelude
+import Prelude hiding (between)
 import Util
 import Word
-import Note
 
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
 import Data.Array.Partial (head, tail)
@@ -16,16 +16,17 @@ import Data.Foldable (foldl)
 import Data.Int (fromString)
 import Data.List.Types (toList)
 import Data.Maybe (Maybe(..))
-import Data.Natural (Natural, intToNat)
-import Data.Rational (Rational)
+import Data.Natural (Natural, intToNat, natToInt)
+import Data.Rational (Rational, (%))
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst, snd)
 
 newtype TimeSig = TimeSig Rational
 
 type Settings =
     { timeSig :: TimeSig
+    , minDuration :: Duration
     , defDuration :: Duration
     , defNote :: Note
     }
@@ -58,6 +59,8 @@ capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase cha
 --           | [modifier] time
 --           | [modifier] time-spec spaces time
 
+-- parseAbsWord :: ParseFn Word
+
 -- time-artic => spelled-number
 --             | "e"
 --             | "and"
@@ -65,18 +68,27 @@ capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase cha
 
 -- parseTimeArtic :: ParseFn Word
 
--- parseAbsWord :: ParseFn Word
 
 -- time => number | spelled-number
 --       | "e"
 --       | "and" | "&" | "+"
 --       | "a" | "ah"
 
--- parseTime :: ParseFn Time
+parseTime :: ParseFn Time
+parseTime = natToTime <$> parseNumber
+        <|> natToTime <<< fst <$> parseSpelledNumber
+        <|> BeatOffset (1 % 4) <$ capString "e"
+        <|> BeatOffset (1 % 4) <$ capString "and"
+        <|> BeatOffset (2 % 4) <$ string "&"
+        <|> BeatOffset (2 % 4) <$ string "+"
+        <|> BeatOffset (3 % 4) <$ capString "ah"
+        <|> BeatOffset (4 % 4) <$ capString "a"
+    where natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
 -- time-spec => "[" time "]"
 
--- parseTimeSpec :: ParseFn Time
+parseTimeSpec :: ParseFn Time
+parseTimeSpec = between (string "[") (string "]") parseTime
 
 -- spelled-number => "one" | "two" | "three" | "four" | "five" | "six"
 --                 | "seven" | "eight" | "nine" | "ten" | "eleven" | "twelve"
