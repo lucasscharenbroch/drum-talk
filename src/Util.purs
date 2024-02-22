@@ -7,6 +7,9 @@ import Data.Array (foldM, fromFoldable, last, singleton)
 import Data.List (List)
 import Data.List.Types (NonEmptyList, toList)
 import Data.String.CodeUnits (fromCharArray)
+import Data.Rational(Rational, toNumber, (%))
+import Data.Tuple (Tuple(..))
+import Data.Int (floor)
 
 -- Generic functions that may or may not be hidden under other names in libraries
 
@@ -29,3 +32,7 @@ charListToStr = fromCharArray <<< fromFoldable
 
 charNlistToStr :: NonEmptyList Char -> String
 charNlistToStr = charListToStr <<< toList
+
+ratToMixed :: Rational -> Tuple Int Rational
+ratToMixed r = Tuple (floor n) (r - (floor n % 1))
+    where n = toNumber r

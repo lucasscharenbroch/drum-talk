@@ -6,12 +6,13 @@ import Data.Maybe
 import Data.Rational
 import Data.Traversable
 import Data.Tuple
+import Note
 import Prelude
 import Tree
-import Note
-import Word
 import Util
+import Word
 
+import Control.Monad.Gen (resize)
 import Data.Array (foldl, zip, zipWith, drop, concat)
 import Data.Int (ceil)
 import Data.Int.Bits ((.&.))
@@ -23,15 +24,16 @@ data TimedGroup = TimedGroup (Tree WeightedNote) Duration
                 | TimedRest Duration
 
 type TimeInfo =
-    { start :: Time
-    , defEnd :: Time
+    { start :: MeasureTime
+    , earlyEnd :: MeasureTime
+    , defEnd :: MeasureTime
     }
 
 timeify :: Tuple Settings (Array Word) -> Either String (Array TimedGroup)
 timeify (Tuple settings words) = validateSettings settings *> res
     where
-        zero = Time (0 % 1)
-        zeroI = {start: zero, defEnd: zero}
+        zero = MeasureTime (0 % 1)
+        zeroI = {start: zero, earlyEnd: zero, defEnd: zero}
         res = do
             times <- scanlM (wordToTime settings) zeroI words
             let timeDiff = zip times (drop 1 times <> [zeroI])
@@ -51,50 +53,73 @@ validateSettings {timeSig: TimeSig sig} = res
             | otherwise = Right unit
 
 validateStartTime :: Settings -> Time -> Either String Unit
-validateStartTime {timeSig: TimeSig sig} (Time t)
+validateStartTime {timeSig: TimeSig sig} (MeasureOffset t)
     | t >= sig = Left $ "Note start-time exceeds size of measure: " <> show t
     | otherwise = Right unit
+validateStartTime _ (BeatOffset _) = Right unit -- beat offsets are hard-coded => in bounds
 
 -- Calculates a new time given a start-time, duration, and signature
-addDurationMod :: TimeSig -> Time -> Duration -> Time
-addDurationMod (TimeSig sig) (Time t) (Duration d)
-    | t + d < sig = Time $ t + d
-    | otherwise = Time $ t + d - sig
+addDurationMod :: TimeSig -> MeasureTime -> Duration -> MeasureTime
+addDurationMod (TimeSig sig) (MeasureTime t) (Duration d)
+    | t + d < sig = MeasureTime $ t + d
+    | otherwise = MeasureTime $ t + d - sig
 
-subTimeMod :: TimeSig -> Time -> Time -> Duration
-subTimeMod (TimeSig sig) (Time t1) (Time t2)
+subTimeMod :: TimeSig -> MeasureTime -> MeasureTime -> Duration
+subTimeMod (TimeSig sig) (MeasureTime t1) (MeasureTime t2)
     | t1 - t2 < (0 % 1) = Duration $ t1 - t2 + sig
     | otherwise = Duration $ t1 - t2
+
+addTimeMod :: TimeSig -> MeasureTime -> MeasureTime -> MeasureTime
+addTimeMod (TimeSig sig) (MeasureTime t1) (MeasureTime t2)
+    | t1 + t2 >= sig = MeasureTime $ t1 + t2 - sig
+    | otherwise = MeasureTime $ t1 + t2
 
 treeToTimedGroup :: Tree WeightedNote -> Duration -> TimedGroup
 treeToTimedGroup (Leaf (WeightedNote note _)) duration = TimedNote note duration
 treeToTimedGroup (Leaf (WeightedRest _)) duration = TimedRest duration
 treeToTimedGroup tree@(Internal _) duration = TimedGroup tree duration
 
+timeToMeasureTime :: Settings -> TimeInfo -> Time -> MeasureTime
+timeToMeasureTime _ _ (MeasureOffset m) = MeasureTime m
+timeToMeasureTime s i (BeatOffset b) = result
+    where {timeSig: sig} = s
+          {earlyEnd} = i
+          MeasureTime earlyEndRat = earlyEnd
+          Tuple whole frac = ratToMixed earlyEndRat
+          result = case compare b frac of
+              EQ -> earlyEnd
+              LT -> addTimeMod sig (MeasureTime (whole % 1)) (MeasureTime b)
+              GT -> addTimeMod sig (MeasureTime (whole % 1)) (MeasureTime (b + (1 % 1)))
+
 wordToTime :: Settings -> TimeInfo -> Word -> Either String TimeInfo
-wordToTime settings _ (AbsoluteWord time _) = asserts *> Right res
+wordToTime settings lastTimeInfo (AbsoluteWord _time _) = asserts *> Right res
     where
-        asserts = validateStartTime settings time
-        {defDuration, timeSig: sig} = settings
+        asserts = validateStartTime settings _time
+        time = timeToMeasureTime settings lastTimeInfo _time
+        {defDuration, minDuration, timeSig: sig} = settings
         res =
             { start: time
+            , earlyEnd: addDurationMod sig time minDuration
             , defEnd: addDurationMod sig time defDuration
             }
-wordToTime {timeSig: sig} lastNoteTime (RelativeWord _ duration) = Right res
+wordToTime {timeSig: sig} lastTimeInfo (RelativeWord _ duration) = Right res
     where
-        {defEnd: lastDefEnd} = lastNoteTime
+        {defEnd: lastDefEnd} = lastTimeInfo
         end = addDurationMod sig lastDefEnd duration
         res =
             { start: lastDefEnd
+            , earlyEnd: end
             , defEnd: end
             }
-wordToTime settings _ (CompleteWord start _ duration) = asserts *> Right res
+wordToTime settings lastTimeInfo (CompleteWord _start _ duration) = asserts *> Right res
     where
         {timeSig: sig} = settings
-        asserts = validateStartTime settings start
+        asserts = validateStartTime settings _start
+        start = timeToMeasureTime settings lastTimeInfo _start
         end = addDurationMod sig start duration
         res =
             { start
+            , earlyEnd: end
             , defEnd: end
             }
 
@@ -110,7 +135,7 @@ calcDurationAndRests settings (Tuple thisNoteTimeI nextNoteTimeI) (AbsoluteWord 
         zero = Duration (0 % 1)
         toNextNote = subTimeMod sig nextStart start
         toNextBeat = case start of
-            Time r -> ((flip (subTimeMod sig) $ start) <<< Time <<< fromInt <<< ceil <<< toNumber) $ r
+            MeasureTime r -> ((flip (subTimeMod sig) $ start) <<< MeasureTime <<< fromInt <<< ceil <<< toNumber) $ r
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
         timedNote = TimedNote defNote duration
         res

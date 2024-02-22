@@ -25,8 +25,12 @@ d4 = Duration (1 % 4) :: Duration
 d8 = Duration (1 % 8) :: Duration
 d16 = Duration (1 % 16) :: Duration
 
--- A point in time, relative to a measure
-newtype Time = Time Rational
+-- A time-offset, relative to the start of a measure or beat
+data Time = MeasureOffset Rational
+          | BeatOffset Rational
+
+-- A a time-offset, relative to the start of a measure
+newtype MeasureTime = MeasureTime Rational
 
 -- Corresponds to a "word" in Drum-Talk
 data Word = AbsoluteWord Time Note -- implicit duration
