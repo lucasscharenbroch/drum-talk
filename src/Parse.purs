@@ -6,7 +6,8 @@ import Parsing.String
 import Parsing.String.Basic
 import Prelude
 import Util
-import Words
+import Word
+import Note
 
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
 import Data.Array.Partial (head, tail)
@@ -147,7 +148,7 @@ parseSpaces = skipSpaces
 
 -- parseModifier :: ParseFn (Array Note)
 
--- mod-flag => "z" | "=" | ">" | "^" | "l" | "r"
+-- mod-flag => "z" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
 
 -- parseModFlag :: ParseFn Note
 

@@ -8,7 +8,8 @@ import Data.Traversable
 import Data.Tuple
 import Prelude
 import Tree
-import Words
+import Note
+import Word
 import Util
 
 import Data.Array (foldl, zip, zipWith, drop, concat)
