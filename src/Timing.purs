@@ -29,8 +29,8 @@ type TimeInfo =
     , defEnd :: MeasureTime
     }
 
-timeify :: Tuple Settings (Array Word) -> Either String (Array TimedGroup)
-timeify (Tuple settings words) = validateSettings settings *> res
+timeify :: Settings -> Array Word -> Either String (Array TimedGroup)
+timeify settings words = validateSettings settings *> res
     where
         zero = MeasureTime (0 % 1)
         zeroI = {start: zero, earlyEnd: zero, defEnd: zero}

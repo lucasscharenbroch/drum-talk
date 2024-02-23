@@ -21,6 +21,7 @@ import Data.Rational (Rational, (%))
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
 import Data.Tuple (Tuple(..), fst, snd)
+import Control.Monad.Reader
 
 newtype TimeSig = TimeSig Rational
 
@@ -31,10 +32,10 @@ type Settings =
     , defNote :: Note
     }
 
-type ParseFn a = Parser String a
+type ParseFn a = ParserT String (Reader Settings) a
 
-parse :: String -> Either String (Tuple Settings (Array Word))
-parse _ = Left "" -- TODO
+parse :: Settings -> String -> Either String (Array Word)
+parse _ _ = Left "" -- TODO
 
 {- Helpers -}
 
@@ -67,7 +68,6 @@ capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase cha
 --             | "a" | "ah"
 
 -- parseTimeArtic :: ParseFn Word
-
 
 -- time => number | spelled-number
 --       | "e"
