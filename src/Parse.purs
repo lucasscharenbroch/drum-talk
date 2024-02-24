@@ -20,7 +20,7 @@ import Data.Natural (Natural, intToNat, natToInt)
 import Data.Rational (Rational, (%))
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Control.Monad.Reader
 
 newtype TimeSig = TimeSig Rational
@@ -40,11 +40,14 @@ parse _ _ = Left "" -- TODO
 {- Helpers -}
 
 capString :: String -> ParseFn Boolean
-capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map (try <<< eitherCase) chars
+capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
     where chars = toCharArray s
           eitherCase c = (string <<< toLower $ c') $> false
                      <|> (string <<< toUpper $ c') $> true
               where c' = singleton c
+
+capString' :: String -> ParseFn Boolean
+capString' = try <<< capString
 
 natToTime :: Natural -> Time
 natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
@@ -63,26 +66,38 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 --           | [modifier] time
 --           | [modifier] time-spec spaces time
 
--- parseAbsWord :: ParseFn Word
+parseAbsWord :: ParseFn Word
+parseAbsWord = applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
+    where applyModifier modFn (Tuple time note) = AbsoluteWord time (modFn note)
+          _parseAbsWord :: ParseFn (Tuple Time Note)
+          _parseAbsWord = do
+                  defNote <- (\settings -> settings.defNote) <$> ask
+                  (parseTimeArtic
+                   <|> (\t -> Tuple t defNote) <$> parseTime
+                   <|> (join $ joinTimesIntoWord defNote <$> parseTimeSpec <*> (parseSpaces *> parseTime)))
+          joinTimesIntoWord :: Note -> Time -> Time -> ParseFn (Tuple Time Note)
+          joinTimesIntoWord note (MeasureOffset m) (BeatOffset b) = pure $ Tuple (MeasureOffset $ m + b) note
+          joinTimesIntoWord _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
+                                           "time-spec is measure-relative and the absolute note is beat-relative"
 
 -- time-artic => spelled-number
 --             | "e"
 --             | "and"
 --             | "a" | "ah"
 
-parseTimeArtic :: ParseFn Word
+parseTimeArtic :: ParseFn (Tuple Time Note)
 parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseSpelledNumber)
-             <|> (defNoteWithAccent (BeatOffset (1 % 4)) =<< capString "e")
-             <|> (defNoteWithAccent (BeatOffset (2 % 4)) =<< capString "and")
-             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString "a")
-             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString "ah")
-    where defNoteWithAccent :: Time -> Boolean -> ParseFn Word
+             <|> (defNoteWithAccent (BeatOffset (1 % 4)) =<< capString' "e")
+             <|> (defNoteWithAccent (BeatOffset (2 % 4)) =<< capString' "and")
+             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "a")
+             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "ah")
+    where defNoteWithAccent :: Time -> Boolean -> ParseFn (Tuple Time Note)
           defNoteWithAccent time isAccented = do
               defNote <- (\settings -> settings.defNote) <$> ask
               let note = if isAccented
                          then defNote {articulation = Accent}
                          else defNote
-              pure <<< AbsoluteWord time $ note
+              pure $ Tuple time note
 
 -- time => number | spelled-number
 --       | "e"
@@ -92,12 +107,12 @@ parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseS
 parseTime :: ParseFn Time
 parseTime = natToTime <$> parseNumber
         <|> natToTime <<< fst <$> parseSpelledNumber
-        <|> BeatOffset (1 % 4) <$ capString "e"
-        <|> BeatOffset (1 % 4) <$ capString "and"
+        <|> BeatOffset (1 % 4) <$ capString' "e"
+        <|> BeatOffset (1 % 4) <$ capString' "and"
         <|> BeatOffset (2 % 4) <$ string "&"
         <|> BeatOffset (2 % 4) <$ string "+"
-        <|> BeatOffset (3 % 4) <$ capString "ah"
-        <|> BeatOffset (4 % 4) <$ capString "a"
+        <|> BeatOffset (3 % 4) <$ capString' "ah"
+        <|> BeatOffset (4 % 4) <$ capString' "a"
 
 -- time-spec => "[" time "]"
 
@@ -113,7 +128,7 @@ parseSpelledNumber = foldl1 (<|>) alts
                               "eight", "nine", "ten", "eleven", "twelve"]
           numVals = map intToNat (1 `cons'` [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
           alts = zipWith toAlt numWords numVals :: NonEmptyArray (ParseFn (Tuple Natural Boolean))
-          toAlt s n = Tuple n <$> capString s
+          toAlt s n = Tuple n <$> capString' s
 
 -- number => [0-9]+
 
