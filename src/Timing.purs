@@ -124,20 +124,31 @@ wordToTime settings lastTimeInfo (CompleteWord _start _ duration) = asserts *> R
             }
 
 calcDurationAndRests :: Settings -> Tuple TimeInfo TimeInfo -> Word -> Array TimedGroup
-calcDurationAndRests _ _ (RelativeWord tree duration) = [treeToTimedGroup tree duration]
-calcDurationAndRests _ _ (CompleteWord _ tree duration) = [treeToTimedGroup tree duration]
-calcDurationAndRests settings (Tuple thisNoteTimeI nextNoteTimeI) (AbsoluteWord _ _) = res
+calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (RelativeWord tree duration) = res
+    where toNextNote = subTimeMod timeSig nextTimeI.start thisTimeI.start
+          restDuration = toNextNote - duration
+          _res = [treeToTimedGroup tree duration]
+          res
+              | restDuration > d0 = _res <> [TimedRest restDuration]
+              | otherwise = _res
+calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (CompleteWord _ tree duration) = res
+    where toNextNote = subTimeMod timeSig nextTimeI.start thisTimeI.start
+          restDuration = toNextNote - duration
+          _res = [treeToTimedGroup tree duration]
+          res
+              | restDuration > d0 = _res <> [TimedRest restDuration]
+              | otherwise = _res
+calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = res
     where
         {timeSig, defNote, defDuration} = settings
-        {start} = thisNoteTimeI
-        {start: nextStart} = nextNoteTimeI
+        {start} = thisTimeI
+        {start: nextStart} = nextTimeI
         inf = Duration (999 % 1)
-        zero = Duration (0 % 1)
         toNextNote = subTimeMod timeSig nextStart start
         toNextBeat = case start of
             MeasureTime r -> ((flip (subTimeMod timeSig) $ start) <<< MeasureTime <<< fromInt <<< ceil <<< toNumber) $ r
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
         timedNote = TimedNote defNote duration
         res
-            | toNextNote - duration > zero = [timedNote, TimedRest (toNextNote - duration)]
+            | toNextNote - duration > d0 = [timedNote, TimedRest (toNextNote - duration)]
             | otherwise = [timedNote]

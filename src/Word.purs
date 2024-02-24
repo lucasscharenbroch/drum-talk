@@ -21,6 +21,7 @@ newtype Duration = Duration Rational
 derive newtype instance Ord Duration
 derive newtype instance Ring Duration
 
+d0 = Duration (0 % 4) :: Duration
 d4 = Duration (1 % 4) :: Duration
 d8 = Duration (1 % 8) :: Duration
 d16 = Duration (1 % 16) :: Duration
