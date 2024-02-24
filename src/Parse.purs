@@ -8,6 +8,8 @@ import Parsing.String.Basic
 import Prelude hiding (between)
 import Util
 import Word
+import Tree
+import Control.Monad.Reader
 
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
 import Data.Array.Partial (head, tail)
@@ -21,7 +23,7 @@ import Data.Rational (Rational, (%))
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
-import Control.Monad.Reader
+import Control.Monad.Trans.Class (lift)
 
 newtype TimeSig = TimeSig Rational
 
@@ -69,7 +71,6 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 parseAbsWord :: ParseFn Word
 parseAbsWord = applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
     where applyModifier modFn (Tuple time note) = AbsoluteWord time (modFn note)
-          _parseAbsWord :: ParseFn (Tuple Time Note)
           _parseAbsWord = do
                   defNote <- (\settings -> settings.defNote) <$> ask
                   (parseTimeArtic
@@ -142,6 +143,7 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
 
 -- rel-word => rudiment
 --           | [modifier] misc-sound
+--           | [modifier] stroke
 --           | word-group
 
 -- parseRelWord :: ParseFn Word
@@ -174,7 +176,19 @@ parseSpaces = skipSpaces
 -- misc-sound => "ta" | "da"
 --             | "tuh" | "duh"
 
--- parseMiscSound :: ParseFn Word
+parseMiscSound :: ParseFn Word
+parseMiscSound = do
+    {defDuration, defNote} <- ask
+    let halfDefDuration = defDuration / (Duration $ 2 % 1)
+    let defNote' isAccented = if isAccented
+                              then defNote {articulation = Accent}
+                              else defNote
+    let defWord duration b = RelativeWord (Leaf $ WeightedNote (defNote' b) n1) duration
+    (    defWord defDuration <$> capString "ta"
+     <|> defWord defDuration <$> capString "da"
+     <|> defWord halfDefDuration <$> capString "tuh"
+     <|> defWord halfDefDuration <$> capString "duh"
+    )
 
 -- stroke => "tap" | "t"
 --         | "gock" | "x"
@@ -183,7 +197,25 @@ parseSpaces = skipSpaces
 --         | "drag" | "dr"
 --         | "double" | "d" | "="
 
--- parseStroke :: ParseFn Word
+parseStroke :: ParseFn Note
+parseStroke = do
+    defNote <- (\settings -> settings.defNote) <$> ask
+    let defNote' isAccented = if isAccented
+                              then defNote {articulation = Accent}
+                              else defNote
+    (    (\b -> defNote' b)                        <$> capString "tap"
+     <|> (\b -> defNote' b)                        <$> capString "t"
+     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString "gock"
+     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString "x"
+     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString "buzz"
+     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString "z"
+     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString "flam"
+     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString "f"
+     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString "drag"
+     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString "dr"
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString "d"
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString "="
+    )
 
 -- modifier => { mod-flag+ }
 

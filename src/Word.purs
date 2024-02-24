@@ -20,6 +20,7 @@ newtype Duration = Duration Rational
 
 derive newtype instance Ord Duration
 derive newtype instance Ring Duration
+derive newtype instance EuclideanRing Duration
 
 d0 = Duration (0 % 4) :: Duration
 d4 = Duration (1 % 4) :: Duration

@@ -10,6 +10,7 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Rational(Rational, toNumber, (%))
 import Data.Tuple (Tuple(..))
 import Data.Int (floor)
+import Data.Natural (Natural, intToNat)
 
 -- Generic functions that may or may not be hidden under other names in libraries
 
@@ -39,3 +40,6 @@ ratToMixed r = Tuple (floor n) (r - (floor n % 1))
 
 id :: forall a. a -> a
 id x = x
+
+n1 = intToNat 1 :: Natural
+n2 = intToNat 1 :: Natural
