@@ -172,11 +172,21 @@ parseSpaces = skipSpaces
 
 -- modifier => { mod-flag+ }
 
--- parseModifier :: ParseFn (Array Note)
+parseModifier :: ParseFn (Note -> Note)
+parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
+    where inBraces = between (string "{") (string "}")
 
 -- mod-flag => "z" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
 
--- parseModFlag :: ParseFn Note
+parseModFlag :: ParseFn (Note -> Note)
+parseModFlag = string "z" $> (\n -> n {stroke = Buzz})
+           <|> string "=" $> (\n -> n {stroke = Double})
+           <|> string ">" $> (\n -> n {articulation = Accent})
+           <|> string "^" $> (\n -> n {articulation = Marcato})
+           <|> string "l" $> (\n -> n {stick = WeakLeft})
+           <|> string "r" $> (\n -> n {stick = WeakRight})
+           <|> string "L" $> (\n -> n {stick = StrongLeft})
+           <|> string "R" $> (\n -> n {stick = StrongRight})
 
 -- * in any word-returning productions, dashes ('-')
 --   between syllables are ignored, and capitilization of a

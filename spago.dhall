@@ -23,7 +23,6 @@ to generate this file without the comments in this block.
   , "lists"
   , "maybe"
   , "naturals"
-  , "ordered-collections"
   , "parsing"
   , "prelude"
   , "rationals"

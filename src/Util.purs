@@ -36,3 +36,6 @@ charNlistToStr = charListToStr <<< toList
 ratToMixed :: Rational -> Tuple Int Rational
 ratToMixed r = Tuple (floor n) (r - (floor n % 1))
     where n = toNumber r
+
+id :: forall a. a -> a
+id x = x
