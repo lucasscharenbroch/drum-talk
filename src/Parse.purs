@@ -40,11 +40,14 @@ parse _ _ = Left "" -- TODO
 {- Helpers -}
 
 capString :: String -> ParseFn Boolean
-capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
+capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map (try <<< eitherCase) chars
     where chars = toCharArray s
           eitherCase c = (string <<< toLower $ c') $> false
                      <|> (string <<< toUpper $ c') $> true
               where c' = singleton c
+
+natToTime :: Natural -> Time
+natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
 {- Productions -}
 
@@ -67,7 +70,19 @@ capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase cha
 --             | "and"
 --             | "a" | "ah"
 
--- parseTimeArtic :: ParseFn Word
+parseTimeArtic :: ParseFn Word
+parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseSpelledNumber)
+             <|> (defNoteWithAccent (BeatOffset (1 % 4)) =<< capString "e")
+             <|> (defNoteWithAccent (BeatOffset (2 % 4)) =<< capString "and")
+             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString "a")
+             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString "ah")
+    where defNoteWithAccent :: Time -> Boolean -> ParseFn Word
+          defNoteWithAccent time isAccented = do
+              defNote <- (\settings -> settings.defNote) <$> ask
+              let note = if isAccented
+                         then defNote {articulation = Accent}
+                         else defNote
+              pure <<< AbsoluteWord time $ note
 
 -- time => number | spelled-number
 --       | "e"
@@ -83,7 +98,6 @@ parseTime = natToTime <$> parseNumber
         <|> BeatOffset (2 % 4) <$ string "+"
         <|> BeatOffset (3 % 4) <$ capString "ah"
         <|> BeatOffset (4 % 4) <$ capString "a"
-    where natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
 -- time-spec => "[" time "]"
 
