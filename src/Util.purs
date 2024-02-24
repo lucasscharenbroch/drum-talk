@@ -42,4 +42,5 @@ id :: forall a. a -> a
 id x = x
 
 n1 = intToNat 1 :: Natural
-n2 = intToNat 1 :: Natural
+n2 = intToNat 2 :: Natural
+n3 = intToNat 3 :: Natural

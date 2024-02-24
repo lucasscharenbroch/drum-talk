@@ -161,17 +161,60 @@ parseSpaces = skipSpaces
 
 -- parseCompleteWord :: ParseFn Word
 
--- rudiment => "tripulet" | "tpl"
---           | {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
---           | "flamtap" | "ft"
---           | "flamaccent" | "fas"
---           | "flamacue" | "fac"
+-- rudiment => "flamtap" | "ft"
+--           | "flamaccent" | "fac"
+--           | "flamacue" | "face"
 --           | "pataflafla" | "ptff"
 --           | "twentyfive" | "ttf"
 --           | "ratamacue" | "rtmc"
+--           | paradiddle
+--           | triplet
 -- * any syllable of a rudiment may have a modifier
 
--- parseRudiment :: ParseFn Word
+type RudimentFragment =
+    { long :: String
+    , short :: String
+    , duration :: Natural
+    , trans :: Note -> Note
+    }
+
+rudiments :: Array (Array RudimentFragment)
+rudiments = [
+    [frag "flam" "f" n1 rf, frag "tap" "t" n1 r],
+    [frag "flam" "f" n1 rf, frag "ac" "a" n1 l, frag "cent" "c" n1 r],
+    [frag "flam" "f" n1 rf, frag "a" "a" n1 (acc <<< l), frag "cu" "c" n1 r, frag "e" "e" n1 l],
+    [frag "pa" "p" n1 rf, frag "ta" "t" n1 l, frag "fla" "f" n1 r, frag "fla" "f" n1 lf],
+    [frag "twen" "t" n1 rd, frag "ty" "t" n1 l, frag "five" "f" n2 r],
+    [frag "ra" "r" n1 rd, frag "ta" "t" n1 l, frag "ma" "m" n1 r, frag "cue" "c" n3 l]
+]
+    where frag long short duration trans = {long, short, duration, trans}
+          flam n = n {numGraceNotes = n1}
+          drag n = n {numGraceNotes = n2}
+          r n = n {stick = WeakRight}
+          l n = n {stick = WeakLeft}
+          rf = flam <<< r
+          lf = flam <<< l
+          rd = drag <<< r
+          acc n = n {articulation = Accent}
+
+parseRudiment :: ParseFn Word
+parseRudiment = do
+    {defNote, defDuration} <- ask
+    let defNote' isAccented = if isAccented
+                              then defNote {articulation = Accent}
+                              else defNote
+    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1)))
+    let fToWn f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> (capString' f.short <|> capString' f.long) :: ParseFn WeightedNote
+    let init = pure [] :: ParseFn (Array (Tree WeightedNote))
+    let rToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToWn frag)) init fs :: ParseFn Word
+    foldl (\x y -> x <|> rToPf y) (fail "") rudiments -- TODO or paradiddle, or triplet
+
+-- paradiddle => {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
+-- parseParadiddle :: ParseFn Word
+
+-- triplet => "tri"["i"]"pu"["u"]"le"["e"]"t"
+--          | "t"["i"]"p"["u"]"l"["e"]
+-- parseTriplet :: ParseFn Word
 
 -- misc-sound => "ta" | "da"
 --             | "tuh" | "duh"
