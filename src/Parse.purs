@@ -68,9 +68,9 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 --           | [modifier] time
 --           | [modifier] time-spec spaces time
 
-parseAbsWord :: ParseFn Word
+parseAbsWord :: ParseFn AWord
 parseAbsWord = applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
-    where applyModifier modFn (Tuple time note) = AbsoluteWord time (modFn note)
+    where applyModifier modFn (Tuple time note) = AWord time (modFn note)
           _parseAbsWord = do
                   defNote <- (\settings -> settings.defNote) <$> ask
                   (parseTimeArtic
@@ -146,14 +146,14 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
 --           | [modifier] stroke
 --           | word-group
 
-parseRelWord :: ParseFn Word
+parseRelWord :: ParseFn RWord
 parseRelWord = parseRudiment
            <|> (noteToWord =<< (option id parseModifier <*> parseStroke))
            <|> modDurNoteToWord <$> option id parseModifier <*> parseMiscSound
     where noteToWord note = do
               {defDuration} <- ask
-              pure $ RelativeWord (Leaf $ WeightedNote note n1) defDuration
-          modDurNoteToWord mod (Tuple duration note) = RelativeWord (Leaf $ WeightedNote (mod note) n1) duration
+              pure $ RWord (Leaf $ WeightedNote note n1) defDuration
+          modDurNoteToWord mod (Tuple duration note) = RWord (Leaf $ WeightedNote (mod note) n1) duration
 
 -- word-group => "(" (spaces rel-word spaces)+ ")"
 
@@ -166,10 +166,9 @@ parseSpaces = skipSpaces
 
 -- complete-word => time-spec rel-word
 
-parseCompleteWord :: ParseFn Word
+parseCompleteWord :: ParseFn CWord
 parseCompleteWord = mkComplete <$> parseTimeSpec <*> parseRelWord
-    where mkComplete time (RelativeWord tree duration) = CompleteWord time tree duration
-          mkComplete _ otherWord = otherWord -- TODO this shouldn't happen
+    where mkComplete time (RWord tree duration) = CWord time tree duration
 
 -- rudiment => "flamtap" | "ft"
 --           | "flamaccent" | "fac"
@@ -207,13 +206,13 @@ rudiments = [
           rd = drag <<< r
           acc n = n {articulation = Accent}
 
-parseRudiment :: ParseFn Word
+parseRudiment :: ParseFn RWord
 parseRudiment = do
     {defNote, defDuration} <- ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
+    let mkRelWord tree = RWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
     let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString' (fToKey f) <* many (char '-')
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)

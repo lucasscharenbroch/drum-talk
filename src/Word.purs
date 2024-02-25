@@ -39,3 +39,21 @@ newtype MeasureTime = MeasureTime Rational
 data Word = AbsoluteWord Time Note -- implicit duration
           | RelativeWord (Tree WeightedNote) Duration -- implicit time
           | CompleteWord Time (Tree WeightedNote) Duration
+
+-- More-narrow word wrapper-types
+
+data AWord = AWord Time Note -- <=>. AbsoluteWord
+data RWord = RWord (Tree WeightedNote) Duration -- <=> RelativeWord
+data CWord = CWord Time (Tree WeightedNote) Duration -- <=> CompleteWord
+
+class ToWord a where
+    toWord :: a -> Word
+
+instance ToWord AWord where
+    toWord (AWord time note) = AbsoluteWord time note
+
+instance ToWord RWord where
+    toWord (RWord tree duration) = RelativeWord tree duration
+
+instance ToWord CWord where
+    toWord (CWord time tree duration) = CompleteWord time tree duration
