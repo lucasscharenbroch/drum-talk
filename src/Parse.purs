@@ -101,9 +101,9 @@ parseWord = (parseTimeSpec <* parseSpaces >>= _withTimeSpec)
 parseDurationWord :: ParseFn Word
 parseDurationWord = (parseDurationSpec <* parseSpaces >>= _withDuration)
                 <|> _withoutDuration
-    where _withoutDuration = parseModifiedWord <|> parseWordGroup
+    where _withoutDuration = parseModifiedWord <|> parseWordGroup <|> parseRudiment
           _withDuration d = do
-              word <- parseModifiedWord <|> parseWordGroup
+              word <- parseModifiedWord <|> parseWordGroup <|> parseRudiment
               case word of
                   (AbsoluteWord time note) -> pure $ CompleteWord time (noteToTree note) d
                   (RelativeWord tree _) -> pure $ RelativeWord tree d
@@ -124,7 +124,6 @@ parseModifiedWord = do
                         <|> (flip AbsoluteWord $ mod defNote) <$> parseTime
                         <|> uncurry (modDurNoteToWord mod) <$> parseMiscSound
                         <|> modDurNoteToWord mod defDuration <$> parseStroke
-                        <|> parseRudiment mod
     option id parseModifier >>= _parseModified
 
 -- time-artic => spelled-number
@@ -239,7 +238,14 @@ rudiments = [
     [frag "flam" "f" n1 rf, frag "a" "a" n1 (acc <<< l), frag "cu" "c" n1 r, frag "e" "e" n1 l],
     [frag "pa" "p" n1 rf, frag "ta" "t" n1 l, frag "fla" "f" n1 r, frag "fla" "f" n1 lf],
     [frag "twen" "t" n1 rd, frag "ty" "t" n1 l, frag "five" "f" n2 r],
-    [frag "ra" "r" n1 rd, frag "ta" "t" n1 l, frag "ma" "m" n1 r, frag "cue" "c" n3 l]
+    [frag "ra" "r" n1 rd, frag "ta" "t" n1 l, frag "ma" "m" n1 r, frag "cue" "c" n3 l],
+    [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "par" "p" n1 r, frag "a" "a" n1 l, frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "flam" "f" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "drag" "dr" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "tri" "t" n1 r, frag "pul" "p" n1 l, frag "let" "l" n1 r]
 ]
     where frag long short duration trans = {long, short, duration, trans}
           flam n = n {numGraceNotes = n1}
@@ -251,8 +257,8 @@ rudiments = [
           rd = drag <<< r
           acc n = n {articulation = Accent}
 
-parseRudiment :: (Note -> Note) -> ParseFn Word
-parseRudiment _ = do
+parseRudiment :: ParseFn Word
+parseRudiment = do
     {defNote, defDuration} <- ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
@@ -261,18 +267,9 @@ parseRudiment _ = do
     let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString (fToKey f) <* many (char '-')
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)
-    let rToPf fToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToPf frag)) (pure []) fs
+    let rToPf fToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToPf frag)) (pure []) fs <* notFollowedBy letter
     foldl (\x y -> x <|> try (rToPf fToPfShort y) <|> try (rToPf fToPfLong y)) (fail "") rudiments
-    -- TODO or paradiddle, or triplet
     <?> "rudiment"
-
--- paradiddle => {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
--- parseParadiddle :: ParseFn Word
-
--- triplet => "tri"["i"]"pu"["u"]"le"["e"]"t"
---          | "t"["i"]"p"["u"]"l"["e"]
-
--- parseTriplet :: ParseFn Word
 
 -- misc-sound => "ta" | "da"
 --             | "tuh" | "duh"

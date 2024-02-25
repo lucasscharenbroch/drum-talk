@@ -51,6 +51,12 @@ cases = [
   -- "<16> (<8> tuh ta ta)"
   -- "(({\"}tuh tuh tuh) ta)"
   -- "(one two)"
+  -- "papapadd"
+  -- "padddd"
+  -- "paradiddlediddle"
+  -- "<32> paraParaParadiddle"
+  -- (bad)
+  -- "paddd"
   -- "_",
   -- "xyz",
 ]
