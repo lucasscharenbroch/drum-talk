@@ -56,7 +56,7 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
 {- Productions -}
 
--- sentence => (spaces word spaces)+
+-- sentence => (spaces word spaces)+ eof
 
 -- parseSentence :: ParseFn (Array Word)
 
@@ -146,7 +146,14 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
 --           | [modifier] stroke
 --           | word-group
 
--- parseRelWord :: ParseFn Word
+parseRelWord :: ParseFn Word
+parseRelWord = parseRudiment
+           <|> (noteToWord =<< (option id parseModifier <*> parseStroke))
+           <|> modDurNoteToWord <$> option id parseModifier <*> parseMiscSound
+    where noteToWord note = do
+              {defDuration} <- ask
+              pure $ RelativeWord (Leaf $ WeightedNote note n1) defDuration
+          modDurNoteToWord mod (Tuple duration note) = RelativeWord (Leaf $ WeightedNote (mod note) n1) duration
 
 -- word-group => "(" (spaces rel-word spaces)+ ")"
 
@@ -159,7 +166,10 @@ parseSpaces = skipSpaces
 
 -- complete-word => time-spec rel-word
 
--- parseCompleteWord :: ParseFn Word
+parseCompleteWord :: ParseFn Word
+parseCompleteWord = mkComplete <$> parseTimeSpec <*> parseRelWord
+    where mkComplete time (RelativeWord tree duration) = CompleteWord time tree duration
+          mkComplete _ otherWord = otherWord -- TODO this shouldn't happen
 
 -- rudiment => "flamtap" | "ft"
 --           | "flamaccent" | "fac"
@@ -215,23 +225,23 @@ parseRudiment = do
 
 -- triplet => "tri"["i"]"pu"["u"]"le"["e"]"t"
 --          | "t"["i"]"p"["u"]"l"["e"]
+
 -- parseTriplet :: ParseFn Word
 
 -- misc-sound => "ta" | "da"
 --             | "tuh" | "duh"
 
-parseMiscSound :: ParseFn Word
+parseMiscSound :: ParseFn (Tuple Duration Note)
 parseMiscSound = do
     {defDuration, defNote} <- ask
     let halfDefDuration = defDuration / (Duration $ 2 % 1)
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    let defWord duration b = RelativeWord (Leaf $ WeightedNote (defNote' b) n1) duration
-    (    defWord defDuration <$> capString "ta"
-     <|> defWord defDuration <$> capString "da"
-     <|> defWord halfDefDuration <$> capString "tuh"
-     <|> defWord halfDefDuration <$> capString "duh"
+    (    Tuple defDuration <<< defNote' <$> capString "ta"
+     <|> Tuple defDuration <<< defNote' <$> capString "da"
+     <|> Tuple halfDefDuration <<< defNote' <$> capString "tuh"
+     <|> Tuple halfDefDuration <<< defNote' <$> capString "duh"
     )
 
 -- stroke => "tap" | "t"
