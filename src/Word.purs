@@ -62,33 +62,3 @@ data Word = AbsoluteWord Time Note -- implicit duration
 derive instance genericWord :: Generic Word _
 instance Show Word where
     show = genericShow
-
--- More-narrow word wrapper-types
-
-data AWord = AWord Time Note -- <=>. AbsoluteWord
-data RWord = RWord (Tree WeightedNote) Duration -- <=> RelativeWord
-data CWord = CWord Time (Tree WeightedNote) Duration -- <=> CompleteWord
-
-derive instance genericAword :: Generic AWord _
-instance Show AWord where
-    show = genericShow
-
-derive instance genericRword :: Generic RWord _
-instance Show RWord where
-    show = genericShow
-
-derive instance genericCword :: Generic CWord _
-instance Show CWord where
-    show = genericShow
-
-class ToWord a where
-    toWord :: a -> Word
-
-instance ToWord AWord where
-    toWord (AWord time note) = AbsoluteWord time note
-
-instance ToWord RWord where
-    toWord (RWord tree duration) = RelativeWord tree duration
-
-instance ToWord CWord where
-    toWord (CWord time tree duration) = CompleteWord time tree duration

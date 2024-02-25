@@ -127,13 +127,6 @@ parseModifiedWord = do
                         <|> parseRudiment mod
     option id parseModifier >>= _parseModified
 
-parseAbsWord :: ParseFn AWord
-parseAbsWord = do
-    defNote <- (\settings -> settings.defNote) <$> ask
-    ((\(Tuple t n) -> AWord t n) <$> parseTimeArtic
-    <|> (\t -> AWord t defNote) <$> parseTime
-    <?> "absolute word")
-
 -- time-artic => spelled-number
 --             | "e"
 --             | "and"
@@ -295,7 +288,6 @@ parseMiscSound = do
      <|> Tuple defDuration <<< defNote' <$> capString' "da"
      <|> Tuple halfDefDuration <<< defNote' <$> capString' "tuh"
      <|> Tuple halfDefDuration <<< defNote' <$> capString' "duh"
-     <?> "misc sound word"
     )
 
 -- stroke => "tap" | "t"
@@ -323,7 +315,6 @@ parseStroke = do
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "="
-     <?> "stroke word"
     )
 
 -- modifier => { mod-flag+ }
