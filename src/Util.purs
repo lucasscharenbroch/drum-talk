@@ -41,6 +41,7 @@ ratToMixed r = Tuple (floor n) (r - (floor n % 1))
 id :: forall a. a -> a
 id x = x
 
+n0 = intToNat 0 :: Natural
 n1 = intToNat 1 :: Natural
 n2 = intToNat 2 :: Natural
 n3 = intToNat 3 :: Natural

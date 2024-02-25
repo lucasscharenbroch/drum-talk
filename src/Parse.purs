@@ -11,8 +11,10 @@ import Word
 import Tree
 import Control.Monad.Reader
 
+import Data.Array (fromFoldable)
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
 import Data.Array.Partial (head, tail)
+import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Foldable (foldl)
 import Data.Int (fromString)
@@ -37,19 +39,20 @@ type Settings =
 type ParseFn a = ParserT String (Reader Settings) a
 
 parse :: Settings -> String -> Either String (Array Word)
-parse _ _ = Left "" -- TODO
+parse settings str = bimap show id $ runReader (runParserT str parseSentence) settings
 
 {- Helpers -}
 
-capString :: String -> ParseFn Boolean
-capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
+_capString :: String -> ParseFn Boolean
+_capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
     where chars = toCharArray s
           eitherCase c = (string <<< toLower $ c') $> false
                      <|> (string <<< toUpper $ c') $> true
+                     <?> ("word: `" <> s <> "`")
               where c' = singleton c
 
 capString' :: String -> ParseFn Boolean
-capString' = try <<< capString
+capString' = try <<< _capString
 
 natToTime :: Natural -> Time
 natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
@@ -58,11 +61,15 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
 -- sentence => (spaces word spaces)+ eof
 
--- parseSentence :: ParseFn (Array Word)
+parseSentence :: ParseFn (Array Word)
+parseSentence = fromFoldable <<< toList <$> many1 (parseSpaces *> parseWord) <* eof
 
 -- word => abs-word | rel-word | complete-word
 
--- parseWord :: ParseFn Word
+parseWord :: ParseFn Word
+parseWord = toWord <$> parseAbsWord
+        <|> toWord <$> parseRelWord
+        <|> toWord <$> parseCompleteWord
 
 -- abs-word => [modifier] time-artic
 --           | [modifier] time
@@ -90,8 +97,8 @@ parseTimeArtic :: ParseFn (Tuple Time Note)
 parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseSpelledNumber)
              <|> (defNoteWithAccent (BeatOffset (1 % 4)) =<< capString' "e")
              <|> (defNoteWithAccent (BeatOffset (2 % 4)) =<< capString' "and")
-             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "a")
              <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "ah")
+             <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "a")
     where defNoteWithAccent :: Time -> Boolean -> ParseFn (Tuple Time Note)
           defNoteWithAccent time isAccented = do
               defNote <- (\settings -> settings.defNote) <$> ask
@@ -217,7 +224,8 @@ parseRudiment = do
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)
     let rToPf fToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToPf frag)) (pure []) fs
-    foldl (\x y -> x <|> rToPf fToPfShort y <|> rToPf fToPfLong y) (fail "") rudiments -- TODO or paradiddle, or triplet
+    try $ foldl (\x y -> x <|> rToPf fToPfShort y <|> rToPf fToPfLong y) (fail "") rudiments -- TODO or paradiddle, or triplet
+    <?> "rudiment"
 
 -- paradiddle => {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
 -- parseParadiddle :: ParseFn Word
@@ -237,10 +245,11 @@ parseMiscSound = do
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    (    Tuple defDuration <<< defNote' <$> capString "ta"
-     <|> Tuple defDuration <<< defNote' <$> capString "da"
-     <|> Tuple halfDefDuration <<< defNote' <$> capString "tuh"
-     <|> Tuple halfDefDuration <<< defNote' <$> capString "duh"
+    (    Tuple defDuration <<< defNote' <$> capString' "ta"
+     <|> Tuple defDuration <<< defNote' <$> capString' "da"
+     <|> Tuple halfDefDuration <<< defNote' <$> capString' "tuh"
+     <|> Tuple halfDefDuration <<< defNote' <$> capString' "duh"
+     <?> "misc sound word"
     )
 
 -- stroke => "tap" | "t"
@@ -256,18 +265,19 @@ parseStroke = do
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    (    (\b -> defNote' b)                        <$> capString "tap"
-     <|> (\b -> defNote' b)                        <$> capString "t"
-     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString "gock"
-     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString "x"
-     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString "buzz"
-     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString "z"
-     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString "flam"
-     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString "f"
-     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString "drag"
-     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString "dr"
-     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString "d"
-     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString "="
+    (    (\b -> defNote' b)                        <$> capString' "tap"
+     <|> (\b -> defNote' b)                        <$> capString' "t"
+     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "gock"
+     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "x"
+     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString' "buzz"
+     <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString' "z"
+     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString' "flam"
+     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString' "f"
+     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "drag"
+     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "="
+     <?> "stroke word"
     )
 
 -- modifier => { mod-flag+ }
@@ -287,6 +297,7 @@ parseModFlag = string "z" $> (\n -> n {stroke = Buzz})
            <|> string "r" $> (\n -> n {stick = WeakRight})
            <|> string "L" $> (\n -> n {stick = StrongLeft})
            <|> string "R" $> (\n -> n {stick = StrongRight})
+           <?> "modifier flag"
 
 -- * in any word-returning productions, dashes ('-')
 --   between syllables are ignored, and capitilization of a

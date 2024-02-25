@@ -27,6 +27,7 @@ d0 = Duration (0 % 4) :: Duration
 d4 = Duration (1 % 4) :: Duration
 d8 = Duration (1 % 8) :: Duration
 d16 = Duration (1 % 16) :: Duration
+d32 = Duration (1 % 32) :: Duration
 
 -- A time-offset, relative to the start of a measure or beat
 data Time = MeasureOffset Rational
