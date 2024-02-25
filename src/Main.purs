@@ -22,21 +22,28 @@ compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse s
 
 cases :: Array String
 cases = [
-  "1 2 3 4",
-  "1 e &",
-  "a a a",
-  "ah ah a",
-  "and ah one e and a two e and",
-  "1 [2] &",
-  "flamtap",
-  "ptff ft ft f",
-  "Pataflafla",
-  "_",
-  "da",
-  "xyz",
-  "{z} tap",
-  "{z} one",
-  "twentyfive"
+  -- "1 2 3 4",
+  -- "1 e &",
+  -- "a a a",
+  -- "ah ah a",
+  -- "and ah one e and a two e and",
+  -- "1 [2] &",
+  -- "PtfF ft ft f",
+  -- "da",
+  -- "duh",
+  -- "duh da duh da duh da duh da da duh da duh",
+  -- "flamtap",
+  -- "FlamTap",
+  -- "Flam---Tap",
+  -- "f-t",
+  -- "PataflaflA",
+  -- "{z}tap",
+  -- "{z}one",
+  -- "twentyfive"
+  "{z}twenty-five",
+  "{zq}"
+  -- "_",
+  -- "xyz",
 ]
 
 defaultSettings :: Settings

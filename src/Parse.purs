@@ -44,15 +44,21 @@ parse settings str = bimap show id $ runReader (runParserT str parseSentence) se
 {- Helpers -}
 
 _capString :: String -> ParseFn Boolean
-_capString s = foldl (\x y -> (&&) <$> x <*> y) (pure false) $ map eitherCase chars
+_capString s = foldl (\x y -> (||) <$> x <*> y) (pure false) $ map eitherCase chars
     where chars = toCharArray s
           eitherCase c = (string <<< toLower $ c') $> false
                      <|> (string <<< toUpper $ c') $> true
                      <?> ("word: `" <> s <> "`")
               where c' = singleton c
 
+
+-- don't consume upon fail
+capString :: String -> ParseFn Boolean
+capString = try <<< _capString
+
+-- don't consume upon fail, fail when followed by letter
 capString' :: String -> ParseFn Boolean
-capString' = try <<< _capString
+capString' s = try $ _capString s <* notFollowedBy letter
 
 natToTime :: Natural -> Time
 natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
@@ -70,19 +76,21 @@ parseWord :: ParseFn Word
 parseWord = toWord <$> parseAbsWord
         <|> toWord <$> parseRelWord
         <|> toWord <$> parseCompleteWord
+        <?> "word"
 
 -- abs-word => [modifier] time-artic
 --           | [modifier] time
 --           | [modifier] time-spec spaces time
 
 parseAbsWord :: ParseFn AWord
-parseAbsWord = applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
+parseAbsWord = try $ applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
     where applyModifier modFn (Tuple time note) = AWord time (modFn note)
           _parseAbsWord = do
                   defNote <- (\settings -> settings.defNote) <$> ask
                   (parseTimeArtic
                    <|> (\t -> Tuple t defNote) <$> parseTime
-                   <|> (join $ joinTimesIntoWord defNote <$> parseTimeSpec <*> (parseSpaces *> parseTime)))
+                   <|> (join $ joinTimesIntoWord defNote <$> parseTimeSpec <*> (parseSpaces *> parseTime))
+                   <?> "absolute word")
           joinTimesIntoWord :: Note -> Time -> Time -> ParseFn (Tuple Time Note)
           joinTimesIntoWord note (MeasureOffset m) (BeatOffset b) = pure $ Tuple (MeasureOffset $ m + b) note
           joinTimesIntoWord _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
@@ -155,8 +163,8 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
 
 parseRelWord :: ParseFn RWord
 parseRelWord = parseRudiment
-           <|> (noteToWord =<< (option id parseModifier <*> parseStroke))
-           <|> modDurNoteToWord <$> option id parseModifier <*> parseMiscSound
+           <|> try (noteToWord =<< (option id parseModifier <*> parseStroke))
+           <|> try (modDurNoteToWord <$> option id parseModifier <*> parseMiscSound)
     where noteToWord note = do
               {defDuration} <- ask
               pure $ RWord (Leaf $ WeightedNote note n1) defDuration
@@ -220,11 +228,12 @@ parseRudiment = do
                               then defNote {articulation = Accent}
                               else defNote
     let mkRelWord tree = RWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
-    let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString' (fToKey f) <* many (char '-')
+    let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString (fToKey f) <* many (char '-')
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)
     let rToPf fToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToPf frag)) (pure []) fs
-    try $ foldl (\x y -> x <|> rToPf fToPfShort y <|> rToPf fToPfLong y) (fail "") rudiments -- TODO or paradiddle, or triplet
+    foldl (\x y -> x <|> try (rToPf fToPfShort y) <|> try (rToPf fToPfLong y)) (fail "") rudiments
+    -- TODO or paradiddle, or triplet
     <?> "rudiment"
 
 -- paradiddle => {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
