@@ -15,6 +15,7 @@ import Effect.Console (log)
 import Sticking (alternateSticking)
 import Timing (TimedGroup(..))
 import Debug (spy)
+import Data.Array (intercalate)
 
 compile :: Settings -> String -> Either String (Array TimedGroup)
 compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse settings
@@ -27,13 +28,15 @@ cases = [
   "ah ah a",
   "and ah one e and a two e and",
   "1 [2] &",
-  "twentyfive",
   "flamtap",
   "ptff ft ft f",
-  "pataflafla",
+  "Pataflafla",
+  "_",
+  "da",
   "xyz",
   "{z} tap",
-  "{z} one"
+  "{z} one",
+  "twentyfive"
 ]
 
 defaultSettings :: Settings
@@ -50,5 +53,4 @@ defaultSettings =
 
 main :: Effect Unit
 main = do
-  _ <- pure <<< spy "" $ map (parse defaultSettings) cases
-  pure unit
+  log <<< intercalate "\n" <<< map show $ map (parse defaultSettings) cases
