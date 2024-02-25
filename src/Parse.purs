@@ -203,11 +203,12 @@ parseRudiment = do
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1)))
-    let fToWn f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> (capString' f.short <|> capString' f.long) :: ParseFn WeightedNote
-    let init = pure [] :: ParseFn (Array (Tree WeightedNote))
-    let rToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToWn frag)) init fs :: ParseFn Word
-    foldl (\x y -> x <|> rToPf y) (fail "") rudiments -- TODO or paradiddle, or triplet
+    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
+    let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString' (fToKey f) <* many (char '-')
+    let fToPfShort = _fToPf (\f -> f.short)
+    let fToPfLong = _fToPf (\f -> f.long)
+    let rToPf fToPf fs = mkRelWord <<< Internal <$> foldl (\acc frag -> (<>) <$> acc <*> (pure <<< Leaf <$> fToPf frag)) (pure []) fs
+    foldl (\x y -> x <|> rToPf fToPfShort y <|> rToPf fToPfLong y) (fail "") rudiments -- TODO or paradiddle, or triplet
 
 -- paradiddle => {"para"|"flama"|"draga"}{"diddle"} | {"pa"|"fa"|"dra"}{"dd"}
 -- parseParadiddle :: ParseFn Word
