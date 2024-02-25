@@ -27,6 +27,7 @@ derive instance genericDuration :: Generic Duration _
 instance Show Duration where
     show = genericShow
 
+derive newtype instance Eq Duration
 derive newtype instance Ord Duration
 derive newtype instance Ring Duration
 derive newtype instance Semiring Duration

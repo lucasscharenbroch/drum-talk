@@ -1,21 +1,23 @@
 module Parse where
 
+import Control.Monad.Reader
 import Note
 import Parsing
 import Parsing.Combinators
 import Parsing.String
 import Parsing.String.Basic
 import Prelude hiding (between)
+import Tree
 import Util
 import Word
-import Tree
-import Control.Monad.Reader
 
-import Data.Array (fromFoldable)
+import Control.Monad.Trans.Class (lift)
+import Data.Array (elem, fromFoldable)
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
 import Data.Array.Partial (head, tail)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
+import Data.Enum (defaultToEnum)
 import Data.Foldable (foldl)
 import Data.Int (fromString)
 import Data.List.Types (toList)
@@ -25,7 +27,6 @@ import Data.Rational (Rational, (%))
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
-import Control.Monad.Trans.Class (lift)
 
 newtype TimeSig = TimeSig Rational
 
@@ -63,9 +64,12 @@ capString' s = try $ _capString s <* notFollowedBy letter
 natToTime :: Natural -> Time
 natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
-timePlusOffsetToAword :: Note -> Time -> Time -> ParseFn AWord
-timePlusOffsetToAword note (MeasureOffset m) (BeatOffset b) = pure $ AWord (MeasureOffset $ m + b) note
-timePlusOffsetToAword _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
+noteToTree :: Note -> Tree WeightedNote
+noteToTree = Leaf <<< ((flip WeightedNote) n1)
+
+timePlusOffsetToWord :: Note -> Time -> Time -> ParseFn Word
+timePlusOffsetToWord note (MeasureOffset m) (BeatOffset b) = pure $ AbsoluteWord (MeasureOffset $ m + b) note
+timePlusOffsetToWord _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
                                      "time-spec is measure-relative and the absolute note is beat-relative"
 
 {- Productions -}
@@ -77,22 +81,47 @@ parseSentence = fromFoldable <<< toList <$> many1 (parseSpaces *> parseWord) <* 
 
 -- word => [time-spec] duration-word
 
-parseTimeSpecdWord :: ParseFn Word
-parseTimeSpecdWord = do
-    let mkComplete time (RWord tree duration) = CWord time tree duration
-    let mkAbs time (AWord offset note) = timePlusOffsetToAword note time offset
-    timeSpec <- parseTimeSpec
-    (mkComplete timeSpec <$> parseRelWord
-    <|> mkAbs timeSpec <$> parseAbsWord)
+parseWord :: ParseFn Word
+parseWord = (parseTimeSpec >>= _withTimeSpec) <|> _withoutTimeSpec
+    where _withoutTimeSpec = parseDurationWord
+          _withTimeSpec time = do
+              word <- parseDurationWord
+              case word of
+                  (AbsoluteWord offset note) -> timePlusOffsetToWord note time offset
+                  (RelativeWord tree duration) -> pure $ CompleteWord time tree duration
+                  (CompleteWord _ _ _) -> fail "Can't specify a time twice"
 
 -- duration-word => [duration-spec] modified-word
 --                | [duration-spec] word-group
+
+parseDurationWord :: ParseFn Word
+parseDurationWord = (parseDurationSpec >>= _withDuration)
+                <|> _withoutDuration
+    where _withoutDuration = parseModifiedWord <|> parseWordGroup
+          _withDuration d = do
+              word <- parseModifiedWord <|> parseWordGroup
+              case word of
+                  (AbsoluteWord time note) -> pure $ CompleteWord time (noteToTree note) d
+                  (RelativeWord tree _) -> pure $ RelativeWord tree d
+                  (CompleteWord time tree _) -> pure $ CompleteWord time tree d
+
 
 -- modified-word => [modifier] time-artic
 --                | [modifier] time
 --                | [modifier] misc-sound
 --                | [modifier] stroke
 --                | [modifier] rudiment
+
+parseModifiedWord :: ParseFn Word
+parseModifiedWord = do
+    {defNote, defDuration} <- ask
+    let modDurNoteToWord mod duration note = RelativeWord (noteToTree $ mod note) duration
+    let _parseModified mod = (\(Tuple t n) -> AbsoluteWord t $ mod n) <$> parseTimeArtic
+                        <|> (flip AbsoluteWord $ mod defNote) <$> parseTime
+                        <|> uncurry (modDurNoteToWord mod) <$> parseMiscSound
+                        <|> modDurNoteToWord mod defDuration <$> parseStroke
+                        <|> parseRudiment mod
+    option id parseModifier >>= _parseModified
 
 parseAbsWord :: ParseFn AWord
 parseAbsWord = do
@@ -161,18 +190,10 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
               Just i -> pure i
               Nothing -> fail $ "Number out of bounds: `" <> s <> "`"
 
-parseRelWord :: ParseFn RWord
-parseRelWord = parseRudiment
-           <|> try (noteToWord =<< (option id parseModifier <*> parseStroke))
-           <|> try (modDurNoteToWord <$> option id parseModifier <*> parseMiscSound)
-    where noteToWord note = do
-              {defDuration} <- ask
-              pure $ RWord (Leaf $ WeightedNote note n1) defDuration
-          modDurNoteToWord mod (Tuple duration note) = RWord (Leaf $ WeightedNote (mod note) n1) duration
-
 -- word-group => "(" (spaces duration-word spaces)+ ")"
 
--- parseWordGroup :: ParseFn Word
+parseWordGroup :: ParseFn Word
+parseWordGroup = fail "TODO"
 
 -- spaces => (' ' | '\t' | '\n' | ...)*
 
@@ -215,13 +236,13 @@ rudiments = [
           rd = drag <<< r
           acc n = n {articulation = Accent}
 
-parseRudiment :: ParseFn RWord
-parseRudiment = do
+parseRudiment :: (Note -> Note) -> ParseFn Word
+parseRudiment _ = do
     {defNote, defDuration} <- ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    let mkRelWord tree = RWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
+    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
     let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString (fToKey f) <* many (char '-')
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)
@@ -301,6 +322,13 @@ parseModFlag = string "z" $> (\n -> n {stroke = Buzz})
            <|> string "L" $> (\n -> n {stick = StrongLeft})
            <|> string "R" $> (\n -> n {stick = StrongRight})
            <?> "modifier flag"
+
+parseDurationSpec :: ParseFn Duration
+parseDurationSpec = inAngles $ ((\n -> Duration (1 % natToInt n)) <$> parseNumber) >>= validateDuration
+    where inAngles = between (string "<") (string ">")
+          validateDuration d@(Duration r) = if d `elem` [d4, d8, d16, d32]
+                                            then pure d
+                                            else fail ("Invalid duration spec: " <> show r)
 
 -- * in any word-returning productions, dashes ('-')
 --   between syllables are ignored, and capitilization of a
