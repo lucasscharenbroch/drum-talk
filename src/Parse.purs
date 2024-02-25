@@ -12,21 +12,23 @@ import Util
 import Word
 
 import Control.Monad.Trans.Class (lift)
-import Data.Array (elem, fromFoldable)
-import Data.Array.NonEmpty (NonEmptyArray, fromArray, cons', foldl1, zipWith)
+import Data.Array (elem, fromFoldable, zipWith)
+import Data.Array.NonEmpty (NonEmptyArray, cons', foldl1, zipWith) as NonEmpty
 import Data.Array.Partial (head, tail)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Enum (defaultToEnum)
 import Data.Foldable (foldl)
-import Data.Int (fromString)
+import Data.Int (fromString, round)
 import Data.List.Types (toList)
+import Data.Traversable (traverse)
 import Data.Maybe (Maybe(..))
 import Data.Natural (Natural, intToNat, natToInt)
-import Data.Rational (Rational, (%))
+import Data.Rational (Rational, (%), numerator, denominator)
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import JS.BigInt (fromInt, toNumber)
 
 newtype TimeSig = TimeSig Rational
 
@@ -104,7 +106,7 @@ parseDurationWord = (parseDurationSpec >>= _withDuration)
                   (AbsoluteWord time note) -> pure $ CompleteWord time (noteToTree note) d
                   (RelativeWord tree _) -> pure $ RelativeWord tree d
                   (CompleteWord time tree _) -> pure $ CompleteWord time tree d
-
+          parseWordGroup = pure unit >>= (\_ -> _parseWordGroup unit)
 
 -- modified-word => [modifier] time-artic
 --                | [modifier] time
@@ -173,11 +175,11 @@ parseTimeSpec = between (string "[") (string "]") parseTime
 --                 | "seven" | "eight" | "nine" | "ten" | "eleven" | "twelve"
 
 parseSpelledNumber :: ParseFn (Tuple Natural Boolean) -- (number, isAccented)
-parseSpelledNumber = foldl1 (<|>) alts
-    where numWords = "one" `cons'` ["two", "three", "four", "five", "six", "seven",
+parseSpelledNumber = NonEmpty.foldl1 (<|>) alts
+    where numWords = "one" `NonEmpty.cons'` ["two", "three", "four", "five", "six", "seven",
                               "eight", "nine", "ten", "eleven", "twelve"]
-          numVals = map intToNat (1 `cons'` [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-          alts = zipWith toAlt numWords numVals :: NonEmptyArray (ParseFn (Tuple Natural Boolean))
+          numVals = map intToNat (1 `NonEmpty.cons'` [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+          alts = NonEmpty.zipWith toAlt numWords numVals :: NonEmpty.NonEmptyArray (ParseFn (Tuple Natural Boolean))
           toAlt s n = Tuple n <$> capString' s
 
 -- number => [0-9]+
@@ -192,8 +194,25 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
 
 -- word-group => "(" (spaces duration-word spaces)+ ")"
 
-parseWordGroup :: ParseFn Word
-parseWordGroup = fail "TODO"
+_parseWordGroup :: Unit -> ParseFn Word
+_parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 parseDurationWord)) >>= wrapUp
+    where inParens = between (string "(") (string ")")
+          wrapUp :: Array Word -> ParseFn Word
+          wrapUp words = do
+              {defDuration} <- ask
+              let toTup (RelativeWord t d) = pure $ Tuple t d
+                  toTup _ = fail "Can't use word with explicit time in group"
+              tree <- tupsToTree <$> traverse toTup words
+              pure $ RelativeWord tree defDuration
+          ratsToNats :: Array Rational -> Array Natural
+          ratsToNats rs = map (intToNat <<< round <<< toNumber <<< (\r -> numerator r * (_lcm / denominator r))) rs
+              where _lcm = foldl lcm (fromInt 1) (map denominator rs)
+          normalize :: Tuple (Tree WeightedNote) Duration -> Rational
+          normalize (Tuple tree (Duration r)) = r * (1 % foldl (+) 0 (map (natToInt <<< getWeight) $ flattenTree tree))
+          mulWeight x (WeightedNote note weight) = WeightedNote note (x * weight)
+          mulWeight x (WeightedRest weight) = WeightedRest (x * weight)
+          tupsToTree :: Array (Tuple (Tree WeightedNote) Duration) -> Tree WeightedNote
+          tupsToTree tups = Internal $ zipWith (\t n -> (mulWeight n) <$> t) (map fst $ tups) (ratsToNats <<< map normalize $ tups)
 
 -- spaces => (' ' | '\t' | '\n' | ...)*
 
@@ -329,7 +348,3 @@ parseDurationSpec = inAngles $ ((\n -> Duration (1 % natToInt n)) <$> parseNumbe
           validateDuration d@(Duration r) = if d `elem` [d4, d8, d16, d32]
                                             then pure d
                                             else fail ("Invalid duration spec: " <> show r)
-
--- * in any word-returning productions, dashes ('-')
---   between syllables are ignored, and capitilization of a
---   syllable yeilds accented articulation

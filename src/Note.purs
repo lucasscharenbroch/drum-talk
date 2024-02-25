@@ -45,6 +45,10 @@ type Note =
 data WeightedNote = WeightedNote Note Natural
                   | WeightedRest Natural
 
+getWeight :: WeightedNote -> Natural
+getWeight (WeightedNote _ w) = w
+getWeight (WeightedRest w) = w
+
 derive instance genericWeighted :: Generic WeightedNote _
 instance Show WeightedNote where
     show = genericShow
