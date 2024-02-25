@@ -63,6 +63,11 @@ capString' s = try $ _capString s <* notFollowedBy letter
 natToTime :: Natural -> Time
 natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 
+timePlusOffsetToAword :: Note -> Time -> Time -> ParseFn AWord
+timePlusOffsetToAword note (MeasureOffset m) (BeatOffset b) = pure $ AWord (MeasureOffset $ m + b) note
+timePlusOffsetToAword _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
+                                     "time-spec is measure-relative and the absolute note is beat-relative"
+
 {- Productions -}
 
 -- sentence => (spaces word spaces)+ eof
@@ -70,31 +75,31 @@ natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
 parseSentence :: ParseFn (Array Word)
 parseSentence = fromFoldable <<< toList <$> many1 (parseSpaces *> parseWord) <* eof
 
--- word => abs-word | rel-word | complete-word
+-- word => [time-spec] duration-word
 
-parseWord :: ParseFn Word
-parseWord = toWord <$> parseAbsWord
-        <|> toWord <$> parseRelWord
-        <|> toWord <$> parseCompleteWord
-        <?> "word"
+parseTimeSpecdWord :: ParseFn Word
+parseTimeSpecdWord = do
+    let mkComplete time (RWord tree duration) = CWord time tree duration
+    let mkAbs time (AWord offset note) = timePlusOffsetToAword note time offset
+    timeSpec <- parseTimeSpec
+    (mkComplete timeSpec <$> parseRelWord
+    <|> mkAbs timeSpec <$> parseAbsWord)
 
--- abs-word => [modifier] time-artic
---           | [modifier] time
---           | [modifier] time-spec spaces time
+-- duration-word => [duration-spec] modified-word
+--                | [duration-spec] word-group
+
+-- modified-word => [modifier] time-artic
+--                | [modifier] time
+--                | [modifier] misc-sound
+--                | [modifier] stroke
+--                | [modifier] rudiment
 
 parseAbsWord :: ParseFn AWord
-parseAbsWord = try $ applyModifier <$> (option id $ try parseModifier) <*> _parseAbsWord
-    where applyModifier modFn (Tuple time note) = AWord time (modFn note)
-          _parseAbsWord = do
-                  defNote <- (\settings -> settings.defNote) <$> ask
-                  (parseTimeArtic
-                   <|> (\t -> Tuple t defNote) <$> parseTime
-                   <|> (join $ joinTimesIntoWord defNote <$> parseTimeSpec <*> (parseSpaces *> parseTime))
-                   <?> "absolute word")
-          joinTimesIntoWord :: Note -> Time -> Time -> ParseFn (Tuple Time Note)
-          joinTimesIntoWord note (MeasureOffset m) (BeatOffset b) = pure $ Tuple (MeasureOffset $ m + b) note
-          joinTimesIntoWord _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
-                                           "time-spec is measure-relative and the absolute note is beat-relative"
+parseAbsWord = do
+    defNote <- (\settings -> settings.defNote) <$> ask
+    ((\(Tuple t n) -> AWord t n) <$> parseTimeArtic
+    <|> (\t -> AWord t defNote) <$> parseTime
+    <?> "absolute word")
 
 -- time-artic => spelled-number
 --             | "e"
@@ -156,11 +161,6 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
               Just i -> pure i
               Nothing -> fail $ "Number out of bounds: `" <> s <> "`"
 
--- rel-word => rudiment
---           | [modifier] misc-sound
---           | [modifier] stroke
---           | word-group
-
 parseRelWord :: ParseFn RWord
 parseRelWord = parseRudiment
            <|> try (noteToWord =<< (option id parseModifier <*> parseStroke))
@@ -170,7 +170,7 @@ parseRelWord = parseRudiment
               pure $ RWord (Leaf $ WeightedNote note n1) defDuration
           modDurNoteToWord mod (Tuple duration note) = RWord (Leaf $ WeightedNote (mod note) n1) duration
 
--- word-group => "(" (spaces rel-word spaces)+ ")"
+-- word-group => "(" (spaces duration-word spaces)+ ")"
 
 -- parseWordGroup :: ParseFn Word
 
@@ -178,12 +178,6 @@ parseRelWord = parseRudiment
 
 parseSpaces :: ParseFn Unit
 parseSpaces = skipSpaces
-
--- complete-word => time-spec rel-word
-
-parseCompleteWord :: ParseFn CWord
-parseCompleteWord = mkComplete <$> parseTimeSpec <*> parseRelWord
-    where mkComplete time (RWord tree duration) = CWord time tree duration
 
 -- rudiment => "flamtap" | "ft"
 --           | "flamaccent" | "fac"
