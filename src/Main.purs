@@ -40,8 +40,17 @@ cases = [
   -- "{z}tap",
   -- "{z}one",
   -- "twentyfive"
-  "{z}twenty-five",
-  "{zq}"
+  -- "twen-{z}ty-five",
+  -- "{zq}"
+  -- "one two three 1e&a"
+  -- "tap tap flamtap flam flam tap flam"
+  -- "[1] & 2e&"
+  -- "(tap tap tap)"
+  -- "(da duh duh da)"
+  -- "<4> ta"
+  -- "<16> (<8> tuh ta ta)"
+  -- "(({\"}tuh tuh tuh) ta)"
+  -- "(one two)"
   -- "_",
   -- "xyz",
 ]

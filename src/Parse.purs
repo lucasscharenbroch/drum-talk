@@ -79,12 +79,14 @@ timePlusOffsetToWord _ _ _ = fail $ "Can't specify a time-spec on an absolute no
 -- sentence => (spaces word spaces)+ eof
 
 parseSentence :: ParseFn (Array Word)
-parseSentence = fromFoldable <<< toList <$> many1 (parseSpaces *> parseWord) <* eof
+parseSentence = fromFoldable <<< toList <$> many1 (parseSpaces *> parseWord <* parseSpaces) <* eof
 
 -- word => [time-spec] duration-word
 
 parseWord :: ParseFn Word
-parseWord = (parseTimeSpec >>= _withTimeSpec) <|> _withoutTimeSpec
+parseWord = (parseTimeSpec <* parseSpaces >>= _withTimeSpec)
+        <|> _withoutTimeSpec
+        <?> "word"
     where _withoutTimeSpec = parseDurationWord
           _withTimeSpec time = do
               word <- parseDurationWord
@@ -97,7 +99,7 @@ parseWord = (parseTimeSpec >>= _withTimeSpec) <|> _withoutTimeSpec
 --                | [duration-spec] word-group
 
 parseDurationWord :: ParseFn Word
-parseDurationWord = (parseDurationSpec >>= _withDuration)
+parseDurationWord = (parseDurationSpec <* parseSpaces >>= _withDuration)
                 <|> _withoutDuration
     where _withoutDuration = parseModifiedWord <|> parseWordGroup
           _withDuration d = do
@@ -188,14 +190,15 @@ parseNumber :: ParseFn Natural
 parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
     where stoi' :: String -> ParseFn Int
           stoi' s = case fromString s of
-              Just 0 -> fail $ "0 is an invalid beat"
+              Just 0 -> fail $ "0 is an invalid beat/duration"
               Just i -> pure i
               Nothing -> fail $ "Number out of bounds: `" <> s <> "`"
 
 -- word-group => "(" (spaces duration-word spaces)+ ")"
 
+-- (monad deferred to avoid circular value dependency)
 _parseWordGroup :: Unit -> ParseFn Word
-_parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 parseDurationWord)) >>= wrapUp
+_parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 $  parseSpaces*> parseDurationWord <* parseSpaces)) >>= wrapUp
     where inParens = between (string "(") (string ")")
           wrapUp :: Array Word -> ParseFn Word
           wrapUp words = do
@@ -332,14 +335,16 @@ parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
 -- mod-flag => "z" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
 
 parseModFlag :: ParseFn (Note -> Note)
-parseModFlag = string "z" $> (\n -> n {stroke = Buzz})
-           <|> string "=" $> (\n -> n {stroke = Double})
-           <|> string ">" $> (\n -> n {articulation = Accent})
-           <|> string "^" $> (\n -> n {articulation = Marcato})
-           <|> string "l" $> (\n -> n {stick = WeakLeft})
-           <|> string "r" $> (\n -> n {stick = WeakRight})
-           <|> string "L" $> (\n -> n {stick = StrongLeft})
-           <|> string "R" $> (\n -> n {stick = StrongRight})
+parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
+           <|> string "="  $> (\n -> n {stroke = Double})
+           <|> string ">"  $> (\n -> n {articulation = Accent})
+           <|> string "^"  $> (\n -> n {articulation = Marcato})
+           <|> string "'"  $> (\n -> n {numGraceNotes = n1})
+           <|> string "\"" $> (\n -> n {numGraceNotes = n2})
+           <|> string "l"  $> (\n -> n {stick = WeakLeft})
+           <|> string "r"  $> (\n -> n {stick = WeakRight})
+           <|> string "L"  $> (\n -> n {stick = StrongLeft})
+           <|> string "R"  $> (\n -> n {stick = StrongRight})
            <?> "modifier flag"
 
 parseDurationSpec :: ParseFn Duration
