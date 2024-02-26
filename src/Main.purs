@@ -14,7 +14,6 @@ import Effect (Effect)
 import Effect.Console (log)
 import Sticking (alternateSticking)
 import Timing (TimedGroup(..))
-import Debug (spy)
 import Data.Array (intercalate)
 
 compile :: Settings -> String -> Either String (Array TimedGroup)
@@ -22,13 +21,14 @@ compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse s
 
 cases :: Array String
 cases = [
-  -- "1 2 3 4",
-  -- "1 e &",
-  -- "a a a",
+  -- "1 2 3 4"
+  -- "e"
+  -- "1 e &"
+  -- "a a a a a a a a a a"
   -- "ah ah a",
   -- "and ah one e and a two e and",
-  -- "1 [2] &",
-  -- "PtfF ft ft f",
+  -- "1 [2] &"
+  -- "PtfF ft ft f"
   -- "da",
   -- "duh",
   -- "duh da duh da duh da duh da da duh da duh",
@@ -63,7 +63,7 @@ cases = [
 
 defaultSettings :: Settings
 defaultSettings =
-    { timeSig: TimeSig (4 % 1)
+    { timeSig: TimeSig n4 n4
     , minDuration: d32
     , defDuration: d8
     , defNote: { numGraceNotes: n0
@@ -75,4 +75,5 @@ defaultSettings =
 
 main :: Effect Unit
 main = do
-  log <<< intercalate "\n" <<< map show $ map (parse defaultSettings) cases
+  -- log <<< intercalate "\n" <<< map show $ map (parse defaultSettings) cases
+  log <<< intercalate "\n" $ map (show <<< compile defaultSettings) cases

@@ -30,7 +30,13 @@ import Data.String.Common (toLower, toUpper)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import JS.BigInt (fromInt, toNumber)
 
-newtype TimeSig = TimeSig Rational
+data TimeSig = TimeSig Natural Natural
+
+sigToR :: TimeSig -> Rational
+sigToR (TimeSig n d) = natToInt n % natToInt d
+
+sigDenom :: TimeSig -> Int
+sigDenom (TimeSig n d) = natToInt d
 
 type Settings =
     { timeSig :: TimeSig
@@ -63,14 +69,19 @@ capString = try <<< _capString
 capString' :: String -> ParseFn Boolean
 capString' s = try $ _capString s <* notFollowedBy letter
 
-natToTime :: Natural -> Time
-natToTime = (\n -> MeasureOffset ((natToInt n) % 1))
+natToTime :: Natural -> ParseFn Time
+natToTime n = do
+    {timeSig} <- ask
+    pure $ MeasureOffset ((natToInt n - 1) % sigDenom timeSig)
 
 noteToTree :: Note -> Tree WeightedNote
 noteToTree = Leaf <<< ((flip WeightedNote) n1)
 
 timePlusOffsetToWord :: Note -> Time -> Time -> ParseFn Word
-timePlusOffsetToWord note (MeasureOffset m) (BeatOffset b) = pure $ AbsoluteWord (MeasureOffset $ m + b) note
+timePlusOffsetToWord note (MeasureOffset m) (BeatOffset b) = do
+    {timeSig} <- ask
+    let denom = sigDenom timeSig
+    pure $ AbsoluteWord (MeasureOffset $ m + (b * (1 % denom))) note
 timePlusOffsetToWord _ _ _ = fail $ "Can't specify a time-spec on an absolute note unless the" <>
                                      "time-spec is measure-relative and the absolute note is beat-relative"
 
@@ -132,7 +143,7 @@ parseModifiedWord = do
 --             | "a" | "ah"
 
 parseTimeArtic :: ParseFn (Tuple Time Note)
-parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseSpelledNumber)
+parseTimeArtic = ((\(Tuple n b) -> natToTime n >>= \n' -> defNoteWithAccent n' b) =<< parseSpelledNumber)
              <|> (defNoteWithAccent (BeatOffset (1 % 4)) =<< capString' "e")
              <|> (defNoteWithAccent (BeatOffset (2 % 4)) =<< capString' "and")
              <|> (defNoteWithAccent (BeatOffset (3 % 4)) =<< capString' "ah")
@@ -151,8 +162,8 @@ parseTimeArtic = ((\(Tuple n b) -> defNoteWithAccent (natToTime n) b) =<< parseS
 --       | "a" | "ah"
 
 parseTime :: ParseFn Time
-parseTime = natToTime <$> parseNumber
-        <|> natToTime <<< fst <$> parseSpelledNumber
+parseTime = (natToTime =<< parseNumber)
+        <|> ((natToTime <<< fst) =<< parseSpelledNumber)
         <|> BeatOffset (1 % 4) <$ capString' "e"
         <|> BeatOffset (1 % 4) <$ capString' "and"
         <|> BeatOffset (2 % 4) <$ string "&"
@@ -172,7 +183,7 @@ parseSpelledNumber :: ParseFn (Tuple Natural Boolean) -- (number, isAccented)
 parseSpelledNumber = NonEmpty.foldl1 (<|>) alts
     where numWords = "one" `NonEmpty.cons'` ["two", "three", "four", "five", "six", "seven",
                               "eight", "nine", "ten", "eleven", "twelve"]
-          numVals = map intToNat (1 `NonEmpty.cons'` [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+          numVals = map (intToNat) (1 `NonEmpty.cons'` [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
           alts = NonEmpty.zipWith toAlt numWords numVals :: NonEmpty.NonEmptyArray (ParseFn (Tuple Natural Boolean))
           toAlt s n = Tuple n <$> capString' s
 

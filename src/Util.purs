@@ -45,3 +45,4 @@ n0 = intToNat 0 :: Natural
 n1 = intToNat 1 :: Natural
 n2 = intToNat 2 :: Natural
 n3 = intToNat 3 :: Natural
+n4 = intToNat 4 :: Natural
