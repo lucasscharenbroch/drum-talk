@@ -19,6 +19,9 @@ import Data.Array (intercalate)
 compile :: Settings -> String -> Either String (Array TimedGroup)
 compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse settings
 
+xyz :: String -> String
+xyz s = "Pong {" <> s <> "}"
+
 cases :: Array String
 cases = [
   "2 3 2 2"

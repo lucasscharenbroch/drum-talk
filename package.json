@@ -20,12 +20,13 @@
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-svelte": "^7.1.2",
     "svelte": "^3.55.0",
-    "svelte-check": "^3.0.0",
+    "svelte-check": "^3.6.5",
     "svelte-preprocess": "^5.0.0",
     "tslib": "^2.5.0",
     "typescript": "^4.9.0"
   },
   "dependencies": {
-    "vexflow": "^4.2.3"
+    "vexflow": "^4.2.3",
+    "sirv-cli": "^2.0.0"
   }
 }
