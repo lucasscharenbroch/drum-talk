@@ -21,6 +21,7 @@ compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse s
 
 cases :: Array String
 cases = [
+  "2 3 2 2"
   -- "1 2 3 4"
   -- "e"
   -- "1 e &"

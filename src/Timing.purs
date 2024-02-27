@@ -18,7 +18,7 @@ import Word
 import Control.Monad.Gen (resize)
 import Data.Array (foldl, zip, zipWith, drop, concat)
 import Data.Int (ceil)
-import Data.Int.Bits ((.&.))
+import Data.Int.Bits (xor, (.&.))
 import Data.Natural (natToInt)
 import Debug (spy)
 import JS.BigInt (toInt)
@@ -154,12 +154,12 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = r
         {start} = thisTimeI
         {start: nextStart} = nextTimeI
         inf = Duration (999 % 1)
-        toNextNote = subTimeMod timeSig nextStart start
-        _toNextBeat = case start of
+        zeroToOne x
+            | x == Duration (0 % 1) = Duration (1 % 1)
+            | otherwise = x
+        toNextNote = zeroToOne $ subTimeMod timeSig nextStart start
+        toNextBeat = zeroToOne $ case start of
             MeasureTime r -> ((flip (subTimeMod timeSig) $ start) <<< MeasureTime <<< fromInt <<< ceil <<< toNumber) $ r
-        toNextBeat
-            | _toNextBeat == Duration (0 % 1) = Duration (1 % 1)
-            | otherwise = _toNextBeat
         _ = spy ">" [toNextNote, toNextBeat, defDuration]
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
         timedNote = TimedNote defNote duration
