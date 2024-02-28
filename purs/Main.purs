@@ -7,24 +7,28 @@ import Prelude
 import Timing
 import Util
 import Word
+import Drawable
 
 import Control.Comonad.Env (local)
+import Data.Array (intercalate)
 import Data.Rational ((%))
 import Effect (Effect)
 import Effect.Console (log)
 import Sticking (alternateSticking)
 import Timing (TimedGroup(..))
-import Data.Array (intercalate)
 
-compile :: Settings -> String -> Either String (Array TimedGroup)
-compile settings = (pure <<< alternateSticking) <=< timeify settings <=< parse settings
+compile :: Settings -> String -> Either String (Array DrawableMeasure)
+compile settings = parse settings
+               >=> timeify settings
+               >=> (pure <<< alternateSticking)
+               >=> toDrawable settings
 
 xyz :: String -> String
 xyz s = "Pong {" <> s <> "}"
 
 cases :: Array String
 cases = [
-  "2 3 2 2"
+  -- "2 3 2 2"
   -- "1 2 3 4"
   -- "e"
   -- "1 e &"
@@ -33,7 +37,7 @@ cases = [
   -- "and ah one e and a two e and",
   -- "1 [2] &"
   -- "PtfF ft ft f"
-  -- "da",
+  -- "da"
   -- "duh",
   -- "duh da duh da duh da duh da da duh da duh",
   -- "flamtap",
