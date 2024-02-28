@@ -17,24 +17,25 @@ import
 }
 from "vexflow";
 
-let div, renderer, context;
+let renderer, context;
 
-export function init() {
-    div = document.getElementById("output") as HTMLDivElement;
+export function init(div: HTMLDivElement) {
     renderer = new Renderer(div, Renderer.Backends.SVG);
-    renderer.resize(1200, 500);
+    renderer.resize(div.offsetHeight, div.offsetWidth);
     context = renderer.getContext();
 }
 
+const  c = ["c/5"];
+
+const right = () => new Annotation("R").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
+const left = () => new Annotation("L").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
+const accent = () => new Articulation("a>");
+const marcato = () => new Articulation("a^");
+const grace1 = () => new GraceNoteGroup([new GraceNote({ keys: c, duration: "8", slash: true })], true);
+
 export function draw_test() {
-    let fn = new GraceNote({ keys: ["c/5"], duration: "8", slash: true})
     let dn1 = new GraceNote({ keys: ["c/5"], duration: "16"})
     let dn2 = new GraceNote({ keys: ["c/5"], duration: "16"})
-
-    const right = () => new Annotation("R").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
-    const left = () => new Annotation("L").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
-    const accent = () => new Articulation("a>");
-    const marcato = () => new Articulation("a^");
 
     // Create the notes
     const notes1 = [
@@ -76,7 +77,7 @@ export function draw_test() {
 
 
     notes1[6].addModifier(accent());
-    notes1[6].addModifier(new GraceNoteGroup([fn], true));
+    notes1[6].addModifier(grace1());
     notes1[7].addModifier(new GraceNoteGroup([dn1, dn2], true))
     notes1[9].addModifier(new Tremolo(3));
 

@@ -23,13 +23,10 @@ compile settings = parse settings
                >=> (pure <<< alternateSticking)
                >=> toDrawable settings
 
-xyz :: String -> String
-xyz s = "Pong {" <> s <> "}"
-
 cases :: Array String
 cases = [
   -- "2 3 2 2"
-  -- "1 2 3 4"
+  "1 2 3 4"
   -- "e"
   -- "1 e &"
   -- "a a a a a a a a a a"
@@ -68,6 +65,11 @@ cases = [
   -- "_",
   -- "xyz",
 ]
+
+test :: Either String Int -> Int
+test esa = case esa of
+    (Left s) -> 3
+    (Right i) -> i
 
 defaultSettings :: Settings
 defaultSettings =

@@ -1,15 +1,12 @@
 import Main from './Main.svelte';
-import {xyz} from '../output/Main/index.js'
-import {init, draw_test} from "./engrave"
+import {init, draw_test} from './engrave'
+import {compile} from './compile'
 
-console.log(xyz("abc"));
+console.log(compile("1 2 3 4"));
+console.log(compile("_"));
 
 const main = new Main({
     target: document.body,
 });
-
-init();
-
-draw_test();
 
 export default main;

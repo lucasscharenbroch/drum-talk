@@ -11,6 +11,7 @@ import Data.Rational(Rational, toNumber, (%))
 import Data.Tuple (Tuple(..))
 import Data.Int (floor)
 import Data.Natural (Natural, intToNat)
+import Data.Either(Either(..))
 
 -- Generic functions that may or may not be hidden under other names in libraries
 
@@ -46,3 +47,10 @@ n1 = intToNat 1 :: Natural
 n2 = intToNat 2 :: Natural
 n3 = intToNat 3 :: Natural
 n4 = intToNat 4 :: Natural
+
+-- Helpers for TS "bridge"
+
+isRight :: forall a b. Either a b -> Boolean
+isRight e = case e of
+    Left _ -> false
+    Right _ -> true
