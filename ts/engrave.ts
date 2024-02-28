@@ -13,7 +13,8 @@ import
     Tremolo,
     Annotation,
     AnnotationVerticalJustify,
-    Font
+    Font,
+    Modifier
 }
 from "vexflow";
 
@@ -25,82 +26,92 @@ export function init(div: HTMLDivElement) {
     context = renderer.getContext();
 }
 
-const  c = ["c/5"];
+let beams, tuplets, voices, staves; // global lists
+
+const c = ["c/5"];
+const xc = ["c/5/x"];
 
 const right = () => new Annotation("R").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
 const left = () => new Annotation("L").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
 const accent = () => new Articulation("a>");
 const marcato = () => new Articulation("a^");
 const grace1 = () => new GraceNoteGroup([new GraceNote({ keys: c, duration: "8", slash: true })], true);
+const trem2 = () => new Tremolo(2);
+const trem3 = () => new Tremolo(3);
+const grace2 = () => {
+    let gns = [
+        new GraceNote({ keys: c, duration: "16" }),
+        new GraceNote({ keys: c, duration: "16" })
+    ];
+
+    beams.push(new Beam(gns));
+
+    return new GraceNoteGroup(gns, true);
+};
+
+const note = (duration: string, modifiers: Modifier[] = []): StaveNote => {
+    let res = new StaveNote({ keys: c, duration });
+    modifiers.map(mod => res.addModifier(mod));
+    return res;
+};
+
+const xnote = (duration: string, modifiers: Modifier[] = []): StaveNote => {
+    let res = new StaveNote({ keys: xc, duration });
+    modifiers.map(mod => res.addModifier(mod));
+    return res;
+};
 
 export function draw_test() {
-    let dn1 = new GraceNote({ keys: ["c/5"], duration: "16"})
-    let dn2 = new GraceNote({ keys: ["c/5"], duration: "16"})
+    beams = [];
+    tuplets = [];
+    staves = [];
+    voices = [];
 
     // Create the notes
     const notes1 = [
         // A quarter-note C.
-        new StaveNote({ keys: ["c/5"], duration: "16" }),
-        new StaveNote({ keys: ["c/5"], duration: "16" }),
-        new StaveNote({ keys: ["c/5"], duration: "16" }),
+        note("16"),
+        note("16"),
+        note("16"),
 
-        new StaveNote({ keys: ["c/5"], duration: "8" }),
-        new StaveNote({ keys: ["c/5"], duration: "8" }),
+        note("8"),
+        note("8"),
 
-        // A quarter-note D.
-        new StaveNote({ keys: ["c/5"], duration: "8r" }),
-        new StaveNote({ keys: ["c/5"], duration: "8" }),
+        note("8r"),
+        note("8", [accent(), grace1()]),
 
-        new StaveNote({ keys: ["c/5"], duration: "8" }),
-        new StaveNote({ keys: ["c/5"], duration: "8r" }),
+        note("8", [grace2()]),
+        note("8r"),
 
-        // A C-Major chord.
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
+        note("q", [trem3()]),
     ];
 
     const notes2 = [
-        new StaveNote({ keys: ["c/5"], duration: "8" }),
-        new StaveNote({ keys: ["c/5"], duration: "16" }),
-        new StaveNote({ keys: ["c/5"], duration: "16" }),
+        note("8", [trem2(), right()]),
+        note("16", [left()]),
+        note("16", [right()]),
 
-        new StaveNote({ keys: ["c/5/x"], duration: "q" }),
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
+        xnote("q", [left()]),
+        note("q", [right()]),
+        note("q"),
     ]
 
     const notes3 = [
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
-        new StaveNote({ keys: ["c/5"], duration: "q" }),
+        note("q", [marcato()]),
+        note("q"),
+        note("q"),
+        note("q"),
     ]
 
+    tuplets = tuplets.concat([
+        new Tuplet(notes1.slice(0, 3), {num_notes: 3, notes_occupied: 2}),
+        new Tuplet(notes1.slice(0, 5), {num_notes: 3, notes_occupied: 2}),
+    ]);
 
-    notes1[6].addModifier(accent());
-    notes1[6].addModifier(grace1());
-    notes1[7].addModifier(new GraceNoteGroup([dn1, dn2], true))
-    notes1[9].addModifier(new Tremolo(3));
-
-    notes2[0].addModifier(new Tremolo(2));
-    notes2[0].addModifier(right());
-    notes2[1].addModifier(left());
-    notes2[2].addModifier(right());
-    notes2[3].addModifier(left());
-    notes2[4].addModifier(right());
-
-    notes3[0].addModifier(marcato());
-
-    let tuplets = [
-    new Tuplet(notes1.slice(0, 3), {num_notes: 3, notes_occupied: 2}),
-    new Tuplet(notes1.slice(0, 5), {num_notes: 3, notes_occupied: 2}),
-    ];
-
-
-    let beams = [
-    new Beam(notes1.slice(0, 5)),
-    new Beam([dn1, dn2]),
-    new Beam(notes2.slice(0, 3)),
-    ];
+    beams = beams.concat([
+        new Beam(notes1.slice(0, 5)),
+        new Beam(notes2.slice(0, 3)),
+    ]);
 
     let f = new Formatter();
 
@@ -129,7 +140,7 @@ export function draw_test() {
 
     // Add a clef and time signature.
     stave1.addClef("percussion").addTimeSignature("4/4");
-    stave3.addClef("percussion").addTimeSignature("4/4");
+    stave3.addClef("percussion");
 
     // Connect it to the rendering context and draw!
     stave1.setContext(context).draw();
