@@ -55,10 +55,23 @@ const note = (duration: string, modifiers: Modifier[] = [], is_x = false): Stave
     return res;
 };
 
-export function draw_test() {
+// read measures from purescript object
+function read_measures(input: any): StaveNote[][] {
+    return [[ // TODO
+        note("q", [marcato()]),
+        note("q"),
+        note("q"),
+        note("q"),
+    ]];
+}
+
+export function engrave(input: any): void {
     beams = [];
     tuplets = [];
 
+    let measures = read_measures(input);
+
+    /*
     let measures = [
         [
             note("16"),
@@ -117,12 +130,15 @@ export function draw_test() {
             note("q"),
         ],
     ]
+    */
 
 
+    /*
     tuplets = tuplets.concat([
         new Tuplet(measures[0].slice(0, 3), {num_notes: 3, notes_occupied: 2}),
         new Tuplet(measures[0].slice(0, 5), {num_notes: 3, notes_occupied: 2}),
     ]);
+    */
 
     /*
     beams = beams.concat([
