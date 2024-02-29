@@ -2,6 +2,8 @@ module Util where
 
 import Prelude
 
+import Data.Int as Int
+
 import Data.Maybe (fromMaybe)
 import Data.Array (foldM, fromFoldable, last, singleton)
 import Data.List (List)
@@ -9,9 +11,9 @@ import Data.List.Types (NonEmptyList, toList)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Rational(Rational, toNumber, (%))
 import Data.Tuple (Tuple(..))
-import Data.Int (floor)
-import Data.Natural (Natural, intToNat)
+import Data.Natural (Natural, intToNat, natToInt)
 import Data.Either(Either(..))
+import Word (Duration(..))
 
 -- Generic functions that may or may not be hidden under other names in libraries
 
@@ -36,7 +38,7 @@ charNlistToStr :: NonEmptyList Char -> String
 charNlistToStr = charListToStr <<< toList
 
 ratToMixed :: Rational -> Tuple Int Rational
-ratToMixed r = Tuple (floor n) (r - (floor n % 1))
+ratToMixed r = Tuple (Int.floor n) (r - (Int.floor n % 1))
     where n = toNumber r
 
 id :: forall a. a -> a
@@ -54,3 +56,16 @@ isRight :: forall a b. Either a b -> Boolean
 isRight e = case e of
     Left _ -> false
     Right _ -> true
+
+natToNum :: Natural -> Number
+natToNum = Int.toNumber <<< natToInt
+
+durationToString :: Duration -> String
+durationToString (Duration r)
+    | r == (1 % 32) = "32"
+    | r == (1 % 16) = "16"
+    | r == (1 % 8) = "8"
+    | r == (1 % 4) = "4"
+    | r == (1 % 2) = "2"
+    | r == (1 % 1) = "1"
+    | otherwise = "bad duration"

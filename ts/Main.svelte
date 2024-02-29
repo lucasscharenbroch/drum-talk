@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { init, engrave } from './engrave'
-    import { compile } from './compile'
+    import { compile } from './purs-bridge'
     import { writable } from 'svelte/store';
 
     let text_input = "1 2 3 4";

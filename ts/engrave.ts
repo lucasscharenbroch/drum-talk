@@ -17,6 +17,7 @@ import
     Modifier
 }
 from "vexflow";
+import { purs_measures_to_json } from "./purs-bridge";
 
 let renderer, context;
 
@@ -35,14 +36,14 @@ const right = () => new Annotation("R").setFont(Font.SANS_SERIF, 15, 'normal', '
 const left = () => new Annotation("L").setFont(Font.SANS_SERIF, 15, 'normal', 'bold').setVerticalJustification(AnnotationVerticalJustify.BOTTOM);
 const accent = () => new Articulation("a>");
 const marcato = () => new Articulation("a^");
-const grace1 = () => new GraceNoteGroup([new GraceNote({ keys: c, duration: "8", slash: true })], true);
-const trem2 = () => new Tremolo(2);
-const trem3 = () => new Tremolo(3);
-const grace2 = () => {
-    let gns = [
-        new GraceNote({ keys: c, duration: "16" }),
-        new GraceNote({ keys: c, duration: "16" })
-    ];
+const trem = n => new Tremolo(n);
+const flam = () => new GraceNoteGroup([new GraceNote({ keys: c, duration: "8", slash: true })], true);
+const grace_n = n => {
+    let gns = [];
+
+    for(let i = 0; i < n; i++) {
+        gns.push(new GraceNote({ keys: c, duration: "16" }));
+    }
 
     beams.push(new Beam(gns));
 
@@ -55,21 +56,53 @@ const note = (duration: string, modifiers: Modifier[] = [], is_x = false): Stave
     return res;
 };
 
-// read measures from purescript object
-function read_measures(input: any): StaveNote[][] {
-    return [[ // TODO
-        note("q", [marcato()]),
-        note("q"),
-        note("q"),
-        note("q"),
-    ]];
+// read measures from purescript object, create StaveNotes
+function make_measures(purs_measures: any): StaveNote[][] {
+    let json_measures = purs_measures_to_json(purs_measures);
+
+    function mk_modifiers(n): Modifier[] {
+        let res = [];
+
+        if(n.num_grace_notes == 1)
+            res.push(flam());
+        else if(n.num_grace_notes >= 2)
+            res.push(grace_n(n.num_grace_notes));
+
+        if(n.num_tremolo)
+            res.push(trem(n.num_tremolo));
+
+        if(n.is_accent)
+            res.push(accent());
+
+        if(n.is_marcato)
+            res.push(marcato());
+
+        if(n.stick == "R")
+            res.push(right());
+        else
+            res.push(left());
+
+        return res;
+    }
+
+    function notes_from_drawable(d: any): StaveNote[] {
+        if(d.is_rest) {
+            return [note(d.value.duration + "r")];
+        } else if(!d.is_tuplet) {
+            return [note(d.value.duration, mk_modifiers(d.value.note), d.value.note.is_gock)];
+        } else {
+            return []; // TODO
+        }
+    }
+
+    return json_measures.map(jm => jm.flatMap(d => notes_from_drawable(d)));
 }
 
-export function engrave(input: any): void {
+export function engrave(purs_measures: any): void {
     beams = [];
     tuplets = [];
 
-    let measures = read_measures(input);
+    let measures = make_measures(purs_measures);
 
     /*
     let measures = [
@@ -155,7 +188,7 @@ export function engrave(input: any): void {
     const START_Y = 40;
     const EXTRA_SPACE = 50;
 
-    let voices = measures.map(m => new Voice({ num_beats: 4, beat_value: 4 }).addTickables(m))
+    let voices = measures.map(m => new Voice({ num_beats: 4, beat_value: 4 }).setStrict(false).addTickables(m)); // TODO remove setStrict(false)
     let widths = voices.map(v => f.preCalculateMinTotalWidth([v]));
 
     const clef = "percussion";
