@@ -26,7 +26,7 @@ export function init(div: HTMLDivElement) {
     context = renderer.getContext();
 }
 
-let beams, tuplets, voices, staves; // global lists
+let beams, tuplets; // global lists (convenient for below helpers)
 
 const c = ["c/5"];
 const xc = ["c/5/x"];
@@ -49,14 +49,8 @@ const grace2 = () => {
     return new GraceNoteGroup(gns, true);
 };
 
-const note = (duration: string, modifiers: Modifier[] = []): StaveNote => {
-    let res = new StaveNote({ keys: c, duration });
-    modifiers.map(mod => res.addModifier(mod));
-    return res;
-};
-
-const xnote = (duration: string, modifiers: Modifier[] = []): StaveNote => {
-    let res = new StaveNote({ keys: xc, duration });
+const note = (duration: string, modifiers: Modifier[] = [], is_x = false): StaveNote => {
+    let res = new StaveNote({ keys: (is_x ? xc : c), duration });
     modifiers.map(mod => res.addModifier(mod));
     return res;
 };
@@ -64,97 +58,137 @@ const xnote = (duration: string, modifiers: Modifier[] = []): StaveNote => {
 export function draw_test() {
     beams = [];
     tuplets = [];
-    staves = [];
-    voices = [];
 
-    // Create the notes
-    const notes1 = [
-        // A quarter-note C.
-        note("16"),
-        note("16"),
-        note("16"),
+    let measures = [
+        [
+            note("16"),
+            note("16"),
+            note("16"),
 
-        note("8"),
-        note("8"),
+            note("8"),
+            note("8"),
 
-        note("8r"),
-        note("8", [accent(), grace1()]),
+            note("8r"),
+            note("8", [accent(), grace1()]),
 
-        note("8", [grace2()]),
-        note("8r"),
+            note("8", [grace2()]),
+            note("8r"),
 
-        note("q", [trem3()]),
-    ];
+            note("q", [trem3()]),
+        ],
+        [
+            note("8", [trem2(), right()]),
+            note("16", [left()]),
+            note("16", [right()]),
 
-    const notes2 = [
-        note("8", [trem2(), right()]),
-        note("16", [left()]),
-        note("16", [right()]),
+            note("q", [left()], true),
+            note("16", [right()]),
+            note("16"),
+            note("16"),
+            note("16"),
 
-        xnote("q", [left()]),
-        note("q", [right()]),
-        note("q"),
+            note("16"),
+            note("16"),
+            note("16"),
+            note("16"),
+        ],
+        [
+            note("q", [marcato()]),
+            note("q"),
+            note("q"),
+            note("q"),
+        ],
+        [
+            note("q", [marcato()]),
+            note("q"),
+            note("q"),
+            note("q"),
+        ],
+        [
+            note("q", [marcato()]),
+            note("q"),
+            note("q"),
+            note("q"),
+        ],
+        [
+            note("q", [marcato()]),
+            note("q"),
+            note("q"),
+            note("q"),
+        ],
     ]
 
-    const notes3 = [
-        note("q", [marcato()]),
-        note("q"),
-        note("q"),
-        note("q"),
-    ]
 
     tuplets = tuplets.concat([
-        new Tuplet(notes1.slice(0, 3), {num_notes: 3, notes_occupied: 2}),
-        new Tuplet(notes1.slice(0, 5), {num_notes: 3, notes_occupied: 2}),
+        new Tuplet(measures[0].slice(0, 3), {num_notes: 3, notes_occupied: 2}),
+        new Tuplet(measures[0].slice(0, 5), {num_notes: 3, notes_occupied: 2}),
     ]);
 
+    /*
     beams = beams.concat([
-        new Beam(notes1.slice(0, 5)),
-        new Beam(notes2.slice(0, 3)),
+        new Beam(measures[0].slice(0, 5)),
+        new Beam(measures[1].slice(0, 3)),
     ]);
+    */
 
     let f = new Formatter();
 
-    // Create a voice in 4/4 and add above notes
-    const voice1 = new Voice({ num_beats: 4, beat_value: 4 });
-    const voice2 = new Voice({ num_beats: 4, beat_value: 4 });
-    const voice3 = new Voice({ num_beats: 4, beat_value: 4 });
+    const DY = 120; // vertical distance between staves
+    const MAX_X = 700; // max width of a line
+    const START_X = 10;
+    const START_Y = 40;
+    const EXTRA_SPACE = 50;
 
-    voice1.addTickables(notes1);
-    voice2.addTickables(notes2);
-    voice3.addTickables(notes3);
+    let voices = measures.map(m => new Voice({ num_beats: 4, beat_value: 4 }).addTickables(m))
+    let widths = voices.map(v => f.preCalculateMinTotalWidth([v]));
 
-    // Format and justify the notes to 400 pixels.
-    let x = f.preCalculateMinTotalWidth([voice1]);
-    let y = f.preCalculateMinTotalWidth([voice2]);
-    let z = f.preCalculateMinTotalWidth([voice3]);
+    const clef = "percussion";
+    const time_sig = "4/4";
 
-    // Create a stave of width 400 at position 10, 40 on the canvas.
-    const stave1 = new Stave(10, 40, x + 200);
-    const stave2 = new Stave(stave1.getWidth() + stave1.getX(), 40, y + 80);
-    const stave3 = new Stave(10, 140, z + 200);
+    // calculate stave positions
 
-    f = f.formatToStave([voice1], stave1);
-    f = f.formatToStave([voice2], stave2);
-    f = f.formatToStave([voice3], stave3);
+    let staves = [];
 
-    // Add a clef and time signature.
-    stave1.addClef("percussion").addTimeSignature("4/4");
-    stave3.addClef("percussion");
+    let x = START_X;
+    let y = START_Y;
 
-    // Connect it to the rendering context and draw!
-    stave1.setContext(context).draw();
-    stave2.setContext(context).draw();
-    stave3.setContext(context).draw();
+    for(let i = 0; i < widths.length; i++) {
+        let w = widths[i] + EXTRA_SPACE + 30 * +(x == START_X) + 30 * +(y == START_Y);
+        let xp = x + w;
+        let yp = y;
 
-    f.joinVoices([voice1]).formatToStave([voice1], stave1)
-    f.joinVoices([voice2]).formatToStave([voice2], stave2)
-    f.joinVoices([voice3]).formatToStave([voice3], stave3)
+        if(i == widths.length - 1 || xp + widths[i + 1] + EXTRA_SPACE > MAX_X) {
+            w = MAX_X - x;
+            xp = START_X;
+            yp = y + DY;
+        }
 
-    // Render voice
-    voice1.draw(context, stave1);
-    voice2.draw(context, stave2);
-    voice3.draw(context, stave3);
+        console.log("x", x, "w", w, "widths i", widths[i], "i + 1", widths[i + 1]);
+        console.log("next offset", x + w + widths[i + 1] + EXTRA_SPACE);
+
+        let s = new Stave(x, y, w);
+
+        if(x == START_X) {
+            s.addClef(clef);
+
+            if(y == START_Y) {
+                s.addTimeSignature(time_sig);
+            }
+        }
+
+        staves.push(s);
+
+        f.joinVoices([voices[i]]).formatToStave([voices[i]], staves[i]);
+
+        x = xp;
+        y = yp;
+    }
+
+    staves.map(s => s.setContext(context).draw());
+
+    for(let i = 0; i < voices.length; i++) {
+        voices[i].draw(context, staves[i]);
+    }
 
     beams.map(b => b.setContext(context).draw());
     tuplets.map(t => t.setContext(context).draw());
