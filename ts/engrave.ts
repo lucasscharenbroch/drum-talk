@@ -99,86 +99,11 @@ function make_measures(purs_measures: any): StaveNote[][] {
 }
 
 export function engrave(purs_measures: any): void {
+    context.clear();
     beams = [];
     tuplets = [];
 
     let measures = make_measures(purs_measures);
-
-    /*
-    let measures = [
-        [
-            note("16"),
-            note("16"),
-            note("16"),
-
-            note("8"),
-            note("8"),
-
-            note("8r"),
-            note("8", [accent(), grace1()]),
-
-            note("8", [grace2()]),
-            note("8r"),
-
-            note("q", [trem3()]),
-        ],
-        [
-            note("8", [trem2(), right()]),
-            note("16", [left()]),
-            note("16", [right()]),
-
-            note("q", [left()], true),
-            note("16", [right()]),
-            note("16"),
-            note("16"),
-            note("16"),
-
-            note("16"),
-            note("16"),
-            note("16"),
-            note("16"),
-        ],
-        [
-            note("q", [marcato()]),
-            note("q"),
-            note("q"),
-            note("q"),
-        ],
-        [
-            note("q", [marcato()]),
-            note("q"),
-            note("q"),
-            note("q"),
-        ],
-        [
-            note("q", [marcato()]),
-            note("q"),
-            note("q"),
-            note("q"),
-        ],
-        [
-            note("q", [marcato()]),
-            note("q"),
-            note("q"),
-            note("q"),
-        ],
-    ]
-    */
-
-
-    /*
-    tuplets = tuplets.concat([
-        new Tuplet(measures[0].slice(0, 3), {num_notes: 3, notes_occupied: 2}),
-        new Tuplet(measures[0].slice(0, 5), {num_notes: 3, notes_occupied: 2}),
-    ]);
-    */
-
-    /*
-    beams = beams.concat([
-        new Beam(measures[0].slice(0, 5)),
-        new Beam(measures[1].slice(0, 3)),
-    ]);
-    */
 
     let f = new Formatter();
 
