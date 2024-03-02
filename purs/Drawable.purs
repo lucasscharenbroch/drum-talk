@@ -12,9 +12,10 @@ import Data.Rational ((%))
 import Data.Traversable (sum, traverse)
 import Parse (Settings, sigToR)
 import Timing (TimedGroup(..))
-import Data.Natural(natToInt)
-import Data.Array(zipWith, filter, head)
+import Data.Natural (natToInt)
+import Data.Array( zipWith, filter, head)
 import Data.Maybe (fromMaybe)
+import Data.Int (toNumber)
 
 import Debug (spy)
 
@@ -22,12 +23,12 @@ type DrawableMeasure = Array DrawableNote
 
 data DrawableNote = DrawableRest Duration
                   | DrawableNote Note Duration
-                  | DrawableTuplet (Array DrawableNote) Duration
+                  | DrawableTuplet (Array DrawableNote) Duration Number Number
 
 instance Show DrawableNote where
     show (DrawableRest d) = "(Drawable Rest " <> show d <> ")"
     show (DrawableNote n d) = "(Drawable note " <> show n <> " " <> show d <> ")"
-    show (DrawableTuplet ns d) = "(Drawable tuplet " <> show ns <> " " <> show d <> ")"
+    show (DrawableTuplet ns d x y) = "(Drawable tuplet " <> show ns <> " " <> show d <> " " <> show x <> ":" <> show y <> ")"
 
 toDrawable :: Settings -> Array TimedGroup -> Either String (Array DrawableMeasure)
 toDrawable settings = (pure <<< splitEvenTuplets)
@@ -84,7 +85,8 @@ drawMeasure timedGroups = map groupToDrawableNote timedGroups
           treeToDrawable :: Tree WeightedNote -> Duration -> DrawableNote
           treeToDrawable (Leaf (WeightedNote n _)) d = DrawableNote n d
           treeToDrawable (Leaf (WeightedRest _)) d = DrawableRest d
-          treeToDrawable tree@(Internal ts) d = DrawableTuplet (zipWith treeToDrawable ts durs) d
-            where _durUnit = d * Duration (1 % (natToInt <<< sum <<< map getWeight $ flattenTree tree))
+          treeToDrawable tree@(Internal ts) d = DrawableTuplet (zipWith treeToDrawable ts durs) d (toNumber totalWeight) (durationToNumber $ d / durUnit)
+            where totalWeight = natToInt <<< sum <<< map getWeight <<< flattenTree $ tree
+                  _durUnit = d * Duration (1 % totalWeight)
                   durUnit = fromMaybe d32 <<< head <<< filter ((<) _durUnit) $ [d32, d16, d8, d4, d2, d1]
                   durs = map ((*) durUnit <<< Duration <<< (\i -> i % 1) <<< natToInt <<< sum <<< map getWeight <<< flattenTree) $ ts

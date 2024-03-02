@@ -120,9 +120,12 @@ function make_measures(purs_measures: any): StaveNote[][] {
             return note(d.value.duration, false, mk_modifiers(d.value.note), d.value.note.is_gock);
         } else { // tuplet
             let notes = d.value.items.flatMap(dn => notes_from_drawable(dn, false));
-            tuplets.push(new Tuplet(notes));
+
+            tuplets.push(new Tuplet(notes, { num_notes: d.value.num_notes, notes_occupied: d.value.notes_occupied}));
+
             if(should_beam_tuplets && d.value.items.every(x => duration_to_number(x.value.duration) < .25))
                 beams.push(new Beam(notes));
+
             return notes;
         }
     }

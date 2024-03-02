@@ -17,7 +17,7 @@ type drawable_obj = {is_rest: boolean, is_tuplet: boolean, value: d_note | d_res
 
 type d_rest = {duration: number};
 type d_note = {duration: number, note: note};
-type d_tuplet = {duration: number, items: drawable_obj[]};
+type d_tuplet = {duration: number, items: drawable_obj[], num_notes: number, notes_occupied: number};
 
 type note = {
     num_grace_notes: any,
@@ -64,6 +64,8 @@ function drawable_note_to_json(drawable: any): drawable_obj {
             value: {
                 duration: drawable.value1,
                 items: drawable.value0.map(drawable_note_to_json),
+                num_notes: drawable.value2,
+                notes_occupied: drawable.value3
             }
         };
     }
