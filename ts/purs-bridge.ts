@@ -36,7 +36,7 @@ function drawable_note_to_json(drawable: any): drawable_obj {
             value: {
                 duration: drawable.value1,
                 note: {
-                    num_grace_notes: Util.natToNum(drawable.value0.num_grace_notes),
+                    num_grace_notes: Util.natToNum(drawable.value0.numGraceNotes),
                     num_tremolo: drawable.value0.stroke instanceof Note.Double ? 1 :
                                  drawable.value0.stroke instanceof Note.LongRoll ? 3 : // TODO 2 if duration is shorter
                                  0,
