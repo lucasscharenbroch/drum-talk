@@ -112,9 +112,9 @@ parseWord = (parseTimeSpec <* parseSpaces >>= _withTimeSpec)
 parseDurationWord :: ParseFn Word
 parseDurationWord = (parseDurationSpec <* parseSpaces >>= _withDuration)
                 <|> _withoutDuration
-    where _withoutDuration = parseModifiedWord <|> parseWordGroup <|> parseRudiment
+    where _withoutDuration = parseRudiment <|> parseModifiedWord <|> parseWordGroup
           _withDuration d = do
-              word <- parseModifiedWord <|> parseWordGroup <|> parseRudiment
+              word <- parseRudiment <|> parseModifiedWord <|> parseWordGroup
               case word of
                   (AbsoluteWord time note) -> pure $ CompleteWord time (noteToTree note) d
                   (RelativeWord tree _) -> pure $ RelativeWord tree d
@@ -303,7 +303,8 @@ parseMiscSound = do
 --         | "buzz" | "z"
 --         | "flam" | "f"
 --         | "drag" | "dr"
---         | "double" | "d" | "="
+--         | "double" | "d" | "-"
+--         | "roll" | "="
 
 parseStroke :: ParseFn Note
 parseStroke = do
@@ -333,7 +334,7 @@ parseModifier :: ParseFn (Note -> Note)
 parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
     where inBraces = between (string "{") (string "}")
 
--- mod-flag => "z" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
+-- mod-flag => "z" | "-" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
 
 parseModFlag :: ParseFn (Note -> Note)
 parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
