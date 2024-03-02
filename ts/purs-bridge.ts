@@ -30,6 +30,8 @@ type note = {
 
 function drawable_note_to_json(drawable: any): drawable_obj {
     if(drawable instanceof Drawable.DrawableNote) {
+        const roll_trems = duration_to_number(drawable.value1) >= 0.25 ? 3 : 2;
+
         return {
             is_rest: false,
             is_tuplet: false,
@@ -38,8 +40,7 @@ function drawable_note_to_json(drawable: any): drawable_obj {
                 note: {
                     num_grace_notes: Util.natToNum(drawable.value0.numGraceNotes),
                     num_tremolo: drawable.value0.stroke instanceof Note.Double ? 1 :
-                                 drawable.value0.stroke instanceof Note.LongRoll ? 3 : // TODO 2 if duration is shorter
-                                 0,
+                                 drawable.value0.stroke instanceof Note.LongRoll ? roll_trems : 0,
                     is_gock: drawable.value0.stroke instanceof Note.Gock,
                     is_accent: drawable.value0.articulation instanceof Note.Accent,
                     is_marcato: drawable.value0.articulation instanceof Note.Marcato,

@@ -322,7 +322,9 @@ parseStroke = do
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "drag"
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
-     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "="
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "-"
+     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "roll"
+     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "="
     )
 
 -- modifier => { mod-flag+ }
@@ -335,7 +337,8 @@ parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
 
 parseModFlag :: ParseFn (Note -> Note)
 parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
-           <|> string "="  $> (\n -> n {stroke = Double})
+           <|> string "-"  $> (\n -> n {stroke = Double})
+           <|> string "="  $> (\n -> n {stroke = LongRoll})
            <|> string "x"  $> (\n -> n {stroke = Gock})
            <|> string ">"  $> (\n -> n {articulation = Accent})
            <|> string "^"  $> (\n -> n {articulation = Marcato})
