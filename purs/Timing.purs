@@ -16,7 +16,7 @@ import Util
 import Word
 
 import Control.Monad.Gen (resize)
-import Data.Array (foldl, zip, zipWith, drop, concat)
+import Data.Array (concat, drop, foldl, tail, zip, zipWith)
 import Data.Int (ceil)
 import Data.Int.Bits (xor, (.&.))
 import Data.Natural (natToInt)
@@ -44,10 +44,13 @@ timeify settings words = validateSettings settings *> res
         _ = spy "words" words
         zero = MeasureTime (0 % 1)
         zeroI = {start: zero, earlyEnd: zero, defEnd: zero}
+        {timeSig} = settings
+        wholeWord = RelativeWord (Leaf $ WeightedRest n1) <<< Duration $ sigToR timeSig -- dummy leading whole note
+        words' = [wholeWord] <> words
         res = do
-            times <- scanlM (wordToTime settings) zeroI words
+            times <- scanlM (wordToTime settings) zeroI words'
             let timeDiff = zip times (drop 1 times <> [zeroI])
-            pure <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words
+            pure <<< fromMaybe [] <<< tail <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words'
 
 validateSettings :: Settings -> Either String Unit
 validateSettings {timeSig: TimeSig sigNum sigDenom} = res
@@ -69,6 +72,11 @@ addDurationMod :: TimeSig -> MeasureTime -> Duration -> MeasureTime
 addDurationMod sig (MeasureTime t) (Duration d)
     | t + d < sigToR sig = MeasureTime $ t + d
     | otherwise = MeasureTime $ t + d - (sigToR sig)
+
+subDurationMod :: TimeSig -> Duration -> Duration -> Duration
+subDurationMod sig (Duration d1) (Duration d2)
+    | d1 - d2 < (0 % 1) = Duration $ d1 - d2 + sigToR sig
+    | otherwise = Duration $ d1 - d2
 
 subTimeMod :: TimeSig -> MeasureTime -> MeasureTime -> Duration
 subTimeMod sig (MeasureTime t1) (MeasureTime t2)
@@ -136,14 +144,14 @@ wordToTime settings lastTimeInfo (CompleteWord _start _ duration) = asserts *> R
 calcDurationAndRests :: Settings -> Tuple TimeInfo TimeInfo -> Word -> Array TimedGroup
 calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (RelativeWord tree duration) = res
     where toNextNote = subTimeMod timeSig nextTimeI.start thisTimeI.start
-          restDuration = toNextNote - duration
+          restDuration = subDurationMod timeSig toNextNote duration
           _res = [treeToTimedGroup tree duration]
           res
               | restDuration > d0 = _res <> [TimedRest restDuration]
               | otherwise = _res
 calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (CompleteWord _ tree duration) = res
     where toNextNote = subTimeMod timeSig nextTimeI.start thisTimeI.start
-          restDuration = toNextNote - duration
+          restDuration = subDurationMod timeSig toNextNote duration
           _res = [treeToTimedGroup tree duration]
           res
               | restDuration > d0 = _res <> [TimedRest restDuration]
