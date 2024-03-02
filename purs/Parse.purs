@@ -256,7 +256,7 @@ rudiments = [
     [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "flam" "f" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "drag" "dr" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
-    [frag "tri" "t" n1 r, frag "pul" "p" n1 l, frag "let" "l" n1 r]
+    [frag "tri" "t" n1 r, frag "pu" "p" n1 l, frag "let" "l" n1 r]
 ]
     where frag long short duration trans = {long, short, duration, trans}
           flam n = n {numGraceNotes = n1}
@@ -336,9 +336,11 @@ parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
 parseModFlag :: ParseFn (Note -> Note)
 parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
            <|> string "="  $> (\n -> n {stroke = Double})
+           <|> string "x"  $> (\n -> n {stroke = Gock})
            <|> string ">"  $> (\n -> n {articulation = Accent})
            <|> string "^"  $> (\n -> n {articulation = Marcato})
            <|> string "'"  $> (\n -> n {numGraceNotes = n1})
+           <|> string "f"  $> (\n -> n {numGraceNotes = n1})
            <|> string "\"" $> (\n -> n {numGraceNotes = n2})
            <|> string "l"  $> (\n -> n {stick = WeakLeft})
            <|> string "r"  $> (\n -> n {stick = WeakRight})

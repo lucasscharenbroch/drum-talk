@@ -26,7 +26,8 @@ compile settings = parse settings
 cases :: Array String
 cases = [
   -- "2 3 2 2"
-  "paradiddle"
+  -- "paradiddle"
+  "1 2 3 {'}4"
   -- "e"
   -- "1 e &"
   -- "a a a a a a a a a a"

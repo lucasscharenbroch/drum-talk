@@ -159,9 +159,9 @@ calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (CompleteWord _ tree 
           res
               | restDuration > d0 = _res <> [TimedRest restDuration]
               | otherwise = _res
-calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = res
+calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ note) = res
     where
-        {timeSig, defNote, defDuration} = settings
+        {timeSig, defDuration} = settings
         {start} = thisTimeI
         {start: nextStart} = nextTimeI
         (MeasureTime startR) = start
@@ -179,7 +179,7 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = r
                  <<< ((*) (beatNote % 1)) $ startR
         _ = spy ">" [toNextNote, toNextBeat, defDuration]
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
-        timedNote = TimedNote defNote duration
+        timedNote = TimedNote note duration
         res
             | toNextNote - duration > d0 = [timedNote, TimedRest (toNextNote - duration)]
             | otherwise = [timedNote]
