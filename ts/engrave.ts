@@ -138,6 +138,9 @@ export function engrave(purs_measures: any): void {
     const START_X = 10;
     const START_Y = 40;
     const EXTRA_SPACE = 50;
+    const MUL = 1.75; // multiplier
+
+    const calc_width = w => w * MUL + EXTRA_SPACE;
 
     let voices = measures.map(m => new Voice({ num_beats: 4, beat_value: 4 }).setStrict(false).addTickables(m)); // TODO remove setStrict(false)
     let widths = voices.map(v => f.preCalculateMinTotalWidth([v]));
@@ -153,11 +156,11 @@ export function engrave(purs_measures: any): void {
     let y = START_Y;
 
     for(let i = 0; i < widths.length; i++) {
-        let w = widths[i] + EXTRA_SPACE + 30 * +(x == START_X) + 30 * +(y == START_Y);
+        let w = calc_width(widths[i]) + 30 * +(x == START_X) + 30 * +(y == START_Y);
         let xp = x + w;
         let yp = y;
 
-        if(i == widths.length - 1 || xp + widths[i + 1] + EXTRA_SPACE > MAX_X) {
+        if(i == widths.length - 1 || xp + calc_width(widths[i + 1]) > MAX_X) {
             w = MAX_X - x;
             xp = START_X;
             yp = y + DY;
