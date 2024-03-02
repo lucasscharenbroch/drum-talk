@@ -298,7 +298,7 @@ parseMiscSound = do
      <|> Tuple halfDefDuration <<< defNote' <$> capString' "duh"
     )
 
--- stroke => "tap" | "t"
+-- stroke => "tap" | "t" | "." | "!"
 --         | "gock" | "x"
 --         | "buzz" | "z"
 --         | "flam" | "f"
@@ -314,6 +314,8 @@ parseStroke = do
                               else defNote
     (    (\b -> defNote' b)                        <$> capString' "tap"
      <|> (\b -> defNote' b)                        <$> capString' "t"
+     <|> (\b -> defNote' b)                        <$> capString "."
+     <|> (\_ -> defNote' true)                     <$> capString "!"
      <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "gock"
      <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "x"
      <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString' "buzz"
@@ -323,9 +325,9 @@ parseStroke = do
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "drag"
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
-     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "-"
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString  "-"
      <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "roll"
-     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "="
+     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
     )
 
 -- modifier => { mod-flag+ }
