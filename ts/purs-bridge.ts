@@ -58,7 +58,14 @@ function drawable_note_to_json(drawable: any): drawable_obj {
             }
         }
     } else {
-        throw new Error("todo: tuplets");
+        return {
+            is_rest: false,
+            is_tuplet: true,
+            value: {
+                duration: drawable.value1,
+                items: drawable.value0.map(drawable_note_to_json),
+            }
+        };
     }
 }
 

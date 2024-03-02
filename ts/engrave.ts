@@ -115,8 +115,11 @@ function make_measures(purs_measures: any): StaveNote[][] {
             return note(d.value.duration, true);
         } else if(!d.is_tuplet) {
             return note(d.value.duration, false, mk_modifiers(d.value.note), d.value.note.is_gock);
-        } else {
-            return []; // TODO
+        } else { // tuplet
+            let notes = d.value.items.flatMap(notes_from_drawable);
+            tuplets.push(new Tuplet(notes));
+            beams.push(new Beam(notes))
+            return notes;
         }
     }
 

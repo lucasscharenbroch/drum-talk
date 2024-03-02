@@ -13,7 +13,8 @@ import Data.Traversable (sum, traverse)
 import Parse (Settings, sigToR)
 import Timing (TimedGroup(..))
 import Data.Natural(natToInt)
-import Data.Array(zipWith)
+import Data.Array(zipWith, filter, head)
+import Data.Maybe (fromMaybe)
 
 import Debug (spy)
 
@@ -84,5 +85,6 @@ drawMeasure timedGroups = map groupToDrawableNote timedGroups
           treeToDrawable (Leaf (WeightedNote n _)) d = DrawableNote n d
           treeToDrawable (Leaf (WeightedRest _)) d = DrawableRest d
           treeToDrawable tree@(Internal ts) d = DrawableTuplet (zipWith treeToDrawable ts durs) d
-            where durUnit = d * Duration (1 % (natToInt <<< sum <<< map getWeight $ flattenTree tree))
+            where _durUnit = d * Duration (1 % (natToInt <<< sum <<< map getWeight $ flattenTree tree))
+                  durUnit = fromMaybe d32 <<< head <<< filter ((<) _durUnit) $ [d32, d16, d8, d4, d2, d1]
                   durs = map ((*) durUnit <<< Duration <<< (\i -> i % 1) <<< natToInt <<< sum <<< map getWeight <<< flattenTree) $ ts

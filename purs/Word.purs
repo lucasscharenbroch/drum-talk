@@ -34,6 +34,8 @@ derive newtype instance Semiring Duration
 derive newtype instance EuclideanRing Duration
 
 d0 = Duration (0 % 4) :: Duration
+d1 = Duration (1 % 1) :: Duration
+d2 = Duration (1 % 2) :: Duration
 d4 = Duration (1 % 4) :: Duration
 d8 = Duration (1 % 8) :: Duration
 d16 = Duration (1 % 16) :: Duration
