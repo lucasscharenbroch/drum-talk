@@ -81,7 +81,7 @@ unpackDuration (Duration r) = res
           calcDotDuration 0 _ = 0 % 1
           calcDotDuration n d = (d * (1 % 2)) + calcDotDuration (n - 1) (d * (1 % 2))
           calcTied toGo
-              | toGo <= (0 % 0) = []
+              | toGo <= (0 % 1) = []
               | otherwise = let d = biggestCoreLe toGo
                             in [d] <> calcTied (toGo - d)
           tied = calcTied (r - mainDuration - calcDotDuration numDots mainDuration)

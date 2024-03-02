@@ -61,7 +61,6 @@ const note = (duration: number, is_rest: boolean, modifiers: Modifier[] = [], is
     const _dummy_note = ds => new StaveNote({ keys: (is_x ? xc : c), duration: ds + (is_rest ? "r" : "")});
 
     let duration_spec = unpack_duration(duration);
-    console.log("unpack", duration, duration_spec); // TODO remove
 
     let main_note = _main_note(duration_spec.mainDuration);
 
