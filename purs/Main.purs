@@ -27,7 +27,7 @@ cases :: Array String
 cases = [
   -- "2 3 2 2"
   -- "paradiddle"
-  "1 2 3 {'}4"
+  "<2>(tap tap (tap tap))"
   -- "e"
   -- "1 e &"
   -- "a a a a a a a a a a"

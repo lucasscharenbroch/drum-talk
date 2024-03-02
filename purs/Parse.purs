@@ -351,6 +351,6 @@ parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
 parseDurationSpec :: ParseFn Duration
 parseDurationSpec = inAngles $ ((\n -> Duration (1 % natToInt n)) <$> parseNumber) >>= validateDuration
     where inAngles = between (string "<") (string ">")
-          validateDuration d@(Duration r) = if d `elem` [d4, d8, d16, d32]
+          validateDuration d@(Duration r) = if d `elem` [d2, d4, d8, d16, d32]
                                             then pure d
                                             else fail ("Invalid duration spec: " <> show r)

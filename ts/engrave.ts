@@ -18,9 +18,12 @@ import
     Font,
     Modifier,
     Fraction
-}
-from "vexflow";
-import { purs_measures_to_json, unpack_duration } from "./purs-bridge";
+} from "vexflow";
+import {
+    purs_measures_to_json,
+    unpack_duration,
+    duration_to_number
+} from "./purs-bridge";
 
 let renderer, context;
 
@@ -110,15 +113,16 @@ function make_measures(purs_measures: any): StaveNote[][] {
         return res;
     }
 
-    function notes_from_drawable(d: any): StaveNote[] {
+    function notes_from_drawable(d: any, should_beam_tuplets: boolean = true): StaveNote[] {
         if(d.is_rest) {
             return note(d.value.duration, true);
         } else if(!d.is_tuplet) {
             return note(d.value.duration, false, mk_modifiers(d.value.note), d.value.note.is_gock);
         } else { // tuplet
-            let notes = d.value.items.flatMap(notes_from_drawable);
+            let notes = d.value.items.flatMap(dn => notes_from_drawable(dn, false));
             tuplets.push(new Tuplet(notes));
-            beams.push(new Beam(notes))
+            if(should_beam_tuplets && d.value.items.every(x => duration_to_number(x.value.duration) < .25))
+                beams.push(new Beam(notes));
             return notes;
         }
     }

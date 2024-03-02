@@ -74,3 +74,4 @@ export function purs_measures_to_json(drawable_measures: any): drawable_obj[][] 
 }
 
 export const unpack_duration = Util.unpackDuration;
+export const duration_to_number = Util.durationToNumber;

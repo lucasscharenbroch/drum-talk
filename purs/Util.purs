@@ -9,7 +9,7 @@ import Data.List (List)
 import Data.List.Types (NonEmptyList, toList)
 import Data.Maybe (fromMaybe)
 import Data.Natural (Natural, intToNat, natToInt)
-import Data.Rational (Rational, toNumber, (%), denominator)
+import Data.Rational (Rational, denominator, toNumber, (%))
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple(..))
 import Word (Duration(..))
@@ -90,3 +90,6 @@ unpackDuration (Duration r) = res
               , numDots: Int.toNumber numDots
               , tied: map coreDurToStr $ tied
               }
+
+durationToNumber :: Duration -> Number
+durationToNumber (Duration r) = toNumber r
