@@ -2,17 +2,16 @@ module Util where
 
 import Prelude
 
+import Data.Array (foldM, fromFoldable, last, singleton, filter)
+import Data.Either (Either(..))
 import Data.Int as Int
-
-import Data.Maybe (fromMaybe)
-import Data.Array (foldM, fromFoldable, last, singleton)
 import Data.List (List)
 import Data.List.Types (NonEmptyList, toList)
-import Data.String.CodeUnits (fromCharArray)
-import Data.Rational(Rational, toNumber, (%))
-import Data.Tuple (Tuple(..))
+import Data.Maybe (fromMaybe)
 import Data.Natural (Natural, intToNat, natToInt)
-import Data.Either(Either(..))
+import Data.Rational (Rational, toNumber, (%), denominator)
+import Data.String.CodeUnits (fromCharArray)
+import Data.Tuple (Tuple(..))
 import Word (Duration(..))
 
 -- Generic functions that may or may not be hidden under other names in libraries
@@ -60,12 +59,34 @@ isRight e = case e of
 natToNum :: Natural -> Number
 natToNum = Int.toNumber <<< natToInt
 
-durationToString :: Duration -> String
-durationToString (Duration r)
-    | r == (1 % 32) = "32"
-    | r == (1 % 16) = "16"
-    | r == (1 % 8) = "8"
-    | r == (1 % 4) = "4"
-    | r == (1 % 2) = "2"
-    | r == (1 % 1) = "1"
-    | otherwise = "bad duration"
+type UnpackedDuration =
+    { mainDuration :: String
+    , numDots :: Number
+    , tied :: Array String -- durations of trailing tied notes
+    }
+
+unpackDuration :: Duration -> UnpackedDuration
+unpackDuration (Duration r) = res
+    where coreDurs = [1 % 32, 1 % 16, 1 % 8, 1 % 4, 1 % 2, 1 % 1]
+          biggestCoreLe x = fromMaybe (1 % 32) <<< last $ filter ((>=) x) coreDurs
+          coreDurToStr = show <<< denominator
+          mainDuration = biggestCoreLe r
+          calcNumDots toGo doubleDotDur = _res
+              where dotDur = doubleDotDur * (1 % 2)
+                    _res
+                        | dotDur < (1 % 32) = 0
+                        | toGo < dotDur = 0
+                        | otherwise = 1 + calcNumDots (toGo - dotDur) dotDur
+          numDots = calcNumDots (r - mainDuration) mainDuration
+          calcDotDuration 0 _ = 0 % 1
+          calcDotDuration n d = (d * (1 % 2)) + calcDotDuration (n - 1) (d * (1 % 2))
+          calcTied toGo
+              | toGo <= (0 % 0) = []
+              | otherwise = let d = biggestCoreLe toGo
+                            in [d] <> calcTied (toGo - d)
+          tied = calcTied (r - mainDuration - calcDotDuration numDots mainDuration)
+          res =
+              { mainDuration: coreDurToStr mainDuration
+              , numDots: Int.toNumber numDots
+              , tied: map coreDurToStr $ tied
+              }

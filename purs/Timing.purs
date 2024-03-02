@@ -104,14 +104,14 @@ wordToTime settings lastTimeInfo (AbsoluteWord _time _) = asserts *> Right res
     where
         asserts = validateStartTime settings _time
         time = timeToMeasureTime settings lastTimeInfo _time
-        _ = spy "" time
+        _ = spy "time" time
         {defDuration, minDuration, timeSig} = settings
         res =
             { start: time
             , earlyEnd: addDurationMod timeSig time minDuration
             , defEnd: addDurationMod timeSig time defDuration
             }
-        _ = spy "" res
+        _ = spy "res" res
 wordToTime {timeSig} lastTimeInfo (RelativeWord _ duration) = Right res
     where
         {defEnd: lastDefEnd} = lastTimeInfo

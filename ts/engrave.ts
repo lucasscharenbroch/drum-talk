@@ -3,9 +3,11 @@ import
     Renderer,
     Stave,
     StaveNote,
+    StaveTie,
     Voice,
     Formatter,
     Tuplet,
+    Dot,
     Beam,
     GraceNoteGroup,
     GraceNote,
@@ -14,10 +16,11 @@ import
     Annotation,
     AnnotationVerticalJustify,
     Font,
-    Modifier
+    Modifier,
+    Fraction
 }
 from "vexflow";
-import { purs_measures_to_json } from "./purs-bridge";
+import { purs_measures_to_json, unpack_duration } from "./purs-bridge";
 
 let renderer, context;
 
@@ -27,7 +30,7 @@ export function init(div: HTMLDivElement) {
     context = renderer.getContext();
 }
 
-let beams, tuplets; // global lists (convenient for below helpers)
+let beams, tuplets, ties; // global lists (convenient for below helpers)
 
 const c = ["c/5"];
 const xc = ["c/5/x"];
@@ -50,9 +53,31 @@ const grace_n = n => {
     return new GraceNoteGroup(gns, true);
 };
 
-const note = (duration: string, modifiers: Modifier[] = [], is_x = false): StaveNote => {
-    let res = new StaveNote({ keys: (is_x ? xc : c), duration });
-    modifiers.map(mod => res.addModifier(mod));
+const note = (duration: number, is_rest: boolean, modifiers: Modifier[] = [], is_x = false): StaveNote[] => {
+    const _main_note = ds => new StaveNote({ keys: (is_x ? xc : c), duration: ds + (is_rest ? "r" : "")});
+    const _dummy_note = ds => new StaveNote({ keys: (is_x ? xc : c), duration: ds + (is_rest ? "r" : "")});
+
+    let duration_spec = unpack_duration(duration);
+    console.log("unpack", duration, duration_spec); // TODO remove
+
+    let main_note = _main_note(duration_spec.mainDuration);
+
+    for(let i = 0; i < duration_spec.numDots; i++)
+        Dot.buildAndAttach([main_note]);
+
+    let tied = duration_spec.tied.map(_dummy_note);
+
+    let res = [main_note, ...tied];
+
+    if(tied.length > 0 && !is_rest) {
+        let t = new StaveTie({
+            first_note: main_note,
+            last_note: tied[tied.length - 1],
+        });
+        ties.push(t);
+    }
+
+    modifiers.map(mod => main_note.addModifier(mod));
     return res;
 };
 
@@ -87,9 +112,9 @@ function make_measures(purs_measures: any): StaveNote[][] {
 
     function notes_from_drawable(d: any): StaveNote[] {
         if(d.is_rest) {
-            return [note(d.value.duration + "r")];
+            return note(d.value.duration, true);
         } else if(!d.is_tuplet) {
-            return [note(d.value.duration, mk_modifiers(d.value.note), d.value.note.is_gock)];
+            return note(d.value.duration, false, mk_modifiers(d.value.note), d.value.note.is_gock);
         } else {
             return []; // TODO
         }
@@ -102,6 +127,7 @@ export function engrave(purs_measures: any): void {
     context.clear();
     beams = [];
     tuplets = [];
+    ties = [];
 
     let measures = make_measures(purs_measures);
 
@@ -166,4 +192,5 @@ export function engrave(purs_measures: any): void {
 
     beams.map(b => b.setContext(context).draw());
     tuplets.map(t => t.setContext(context).draw());
+    ties.map(t => t.setContext(context).draw());
 }

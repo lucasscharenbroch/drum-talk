@@ -15,9 +15,9 @@ export function compile(s: string): {success: boolean, value: any} {
 
 type drawable_obj = {is_rest: boolean, is_tuplet: boolean, value: d_note | d_rest | d_tuplet};
 
-type d_rest = {duration: string};
-type d_note = {duration: string, note: note};
-type d_tuplet = {duration: string, items: drawable_obj[]};
+type d_rest = {duration: number};
+type d_note = {duration: number, note: note};
+type d_tuplet = {duration: number, items: drawable_obj[]};
 
 type note = {
     num_grace_notes: any,
@@ -34,7 +34,7 @@ function drawable_note_to_json(drawable: any): drawable_obj {
             is_rest: false,
             is_tuplet: false,
             value: {
-                duration: Util.durationToString(drawable.value1),
+                duration: drawable.value1,
                 note: {
                     num_grace_notes: Util.natToNum(drawable.value0.num_grace_notes),
                     num_tremolo: drawable.value0.stroke instanceof Note.Double ? 1 :
@@ -54,7 +54,7 @@ function drawable_note_to_json(drawable: any): drawable_obj {
             is_rest: true,
             is_tuplet: false,
             value: {
-                duration: Util.durationToString(drawable.value0),
+                duration: drawable.value0,
             }
         }
     } else {
@@ -65,3 +65,5 @@ function drawable_note_to_json(drawable: any): drawable_obj {
 export function purs_measures_to_json(drawable_measures: any): drawable_obj[][] {
     return drawable_measures.map(m => m.map(drawable_note_to_json));
 }
+
+export const unpack_duration = Util.unpackDuration;

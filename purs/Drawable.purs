@@ -48,7 +48,7 @@ sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (fromFo
           iter :: (Array (Array TimedGroup)) -> (Array TimedGroup) -> Duration -> (List TimedGroup) -> Either String (Array (Array TimedGroup))
           iter accs acc sum (Cons x xs)
               | sum + getDuration x < measureDuration = iter accs (acc <> [x]) (sum + getDuration x) xs
-              | sum + getDuration x == measureDuration = iter (accs <> [acc]) [] (Duration (0 % 1)) xs
+              | sum + getDuration x == measureDuration = iter (accs <> [acc <> [x]]) [] (Duration (0 % 1)) xs
               | otherwise = case x of
                   (TimedNote n d) -> iter (accs <> [acc <> [x']]) [] (Duration $ 0 % 1) (x'' : xs)
                       where d' = measureDuration - sum
@@ -66,7 +66,8 @@ sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (fromFo
                             _ = spy "getDuration" (getDuration x)
                   _ -> Left "Timed group (tuplet) spans measure" -- TODO try to split? (factor out)
           iter accs [] _ _ = Right accs
-          iter a b c d = Left "Supplied rhythms don't evenly fill measures"
+            where _ = spy "accs =>" accs
+          iter a b c d = Left $ "Supplied rhythms don't evenly fill measures"
               where _ = spy "accs" a
                     _ = spy "acc" b
                     _ = spy "sum" c
