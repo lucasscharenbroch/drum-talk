@@ -3,6 +3,7 @@ module Timing where
 import Data.Either
 import Data.Foldable
 import Data.Generic.Rep
+import Data.List
 import Data.Maybe
 import Data.Rational
 import Data.Show
@@ -16,13 +17,15 @@ import Util
 import Word
 
 import Control.Monad.Gen (resize)
-import Data.Array (concat, drop, foldl, tail, zip, zipWith)
+import Data.Array (concat, drop, foldl, fromFoldable, tail, zip, zipWith, length, head)
 import Data.Int (ceil)
 import Data.Int.Bits (xor, (.&.))
+import Data.List as List
 import Data.Natural (natToInt)
 import Debug (spy)
 import JS.BigInt (toInt)
 import Parse (Settings, TimeSig(..), sigToR, sigDenom)
+
 
 data TimedGroup = TimedGroup (Tree WeightedNote) Duration
                 | TimedNote Note Duration
@@ -50,7 +53,7 @@ timeify settings words = validateSettings settings *> res
         res = do
             times <- scanlM (wordToTime settings) zeroI words'
             let timeDiff = zip times (drop 1 times <> [zeroI])
-            pure <<< fromMaybe [] <<< tail <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words'
+            pure <<< splitEvenTuplets <<< fromMaybe [] <<< tail <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words'
 
 validateSettings :: Settings -> Either String Unit
 validateSettings {timeSig: TimeSig sigNum sigDenom} = res
@@ -180,3 +183,40 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = r
         res
             | toNextNote - duration > d0 = [timedNote, TimedRest (toNextNote - duration)]
             | otherwise = [timedNote]
+
+splitEvenTuplets :: Array TimedGroup -> Array TimedGroup
+splitEvenTuplets = fromFoldable <<< _splitEvenTuplets <<< List.fromFoldable
+
+_splitEvenTuplets :: List TimedGroup -> List TimedGroup
+_splitEvenTuplets Nil = Nil
+_splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTuplets xs
+    where sumTree t = sum <<< map getWeight <<< flattenTree $ t
+          split :: List (Tree WeightedNote) -> Maybe (Tuple (Array (Tree WeightedNote)) (Array (Tree WeightedNote)))
+          split ts = _res
+              where weights = map (natToInt <<< sumTree) $ ts
+                    prefix = scanl (+) 0 $ weights
+                    netSum = sum weights
+                    {init: _before, rest: _after} = span ((/=) (1 + netSum `div` 2) <<< snd) $ List.zip ts prefix
+                    before = map fst _before
+                    after = map fst _after
+                    _res
+                        | netSum `mod` 2 /= 0 = Nothing
+                        | List.length after == 0 = Nothing
+                        | otherwise = Just $ Tuple (fromFoldable before) (fromFoldable after)
+                    _ = spy "prefix sum" prefix
+                    _ = spy "net" netSum
+                    _ = spy "before, after" (Tuple before after)
+          rec ts = _splitEvenTuplets $ (TimedGroup (Internal ts) (duration * Duration (1 % 2))) : Nil
+          res = case tree of
+                (Leaf _) -> tg : Nil
+                (Internal arr)
+                    | length arr == 1 -> case head arr of
+                                         Nothing -> TimedRest duration : Nil -- shouldn't happen
+                                         (Just t) -> _splitEvenTuplets $ (TimedGroup t duration) : Nil
+                (Internal arr) -> case split (List.fromFoldable arr) of
+                                  Nothing -> tg : Nil
+                                  Just (Tuple before after) -> rec before <> rec after
+          _ = spy "splitting up" tg
+          _ = spy "==>" (List.head res)
+_splitEvenTuplets (Cons x xs) = x : _splitEvenTuplets xs
+    where _ = spy "not splitting" x
