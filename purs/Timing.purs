@@ -196,12 +196,12 @@ _splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTup
               where weights = map (natToInt <<< sumTree) $ ts
                     prefix = scanl (+) 0 $ weights
                     netSum = sum weights
-                    {init: _before, rest: _after} = span ((/=) (1 + netSum `div` 2) <<< snd) $ List.zip ts prefix
+                    {init: _before, rest: _after} = span ((>=) (netSum `div` 2) <<< snd) $ List.zip ts prefix
                     before = map fst _before
                     after = map fst _after
                     _res
                         | netSum `mod` 2 /= 0 = Nothing
-                        | List.length after == 0 = Nothing
+                        | not ((netSum `div` 2) `elem` prefix) = Nothing
                         | otherwise = Just $ Tuple (fromFoldable before) (fromFoldable after)
                     _ = spy "prefix sum" prefix
                     _ = spy "net" netSum
