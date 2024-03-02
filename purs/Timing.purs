@@ -161,13 +161,19 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ _) = r
         {timeSig, defNote, defDuration} = settings
         {start} = thisTimeI
         {start: nextStart} = nextTimeI
+        (MeasureTime startR) = start
         inf = Duration (999 % 1)
+        beatNote = sigDenom timeSig
         zeroToOne x
             | x == Duration (0 % 1) = Duration (1 % 1)
             | otherwise = x
         toNextNote = zeroToOne $ subTimeMod timeSig nextStart start
-        toNextBeat = zeroToOne $ case start of
-            MeasureTime r -> ((flip (subTimeMod timeSig) $ start) <<< MeasureTime <<< fromInt <<< ceil <<< toNumber) $ r
+        toNextBeat = zeroToOne
+                 <<< (flip (subTimeMod timeSig) $ start)
+                 <<< MeasureTime
+                 <<< ((*) (1 % beatNote))
+                 <<< fromInt <<< ceil <<< toNumber
+                 <<< ((*) (beatNote % 1)) $ startR
         _ = spy ">" [toNextNote, toNextBeat, defDuration]
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
         timedNote = TimedNote defNote duration
