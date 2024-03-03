@@ -31,8 +31,8 @@ let MAX_X;
 
 export function init(div: HTMLDivElement) {
     renderer = new Renderer(div, Renderer.Backends.SVG);
-    renderer.resize(div.offsetWidth - 50, div.offsetHeight);
-    MAX_X = div.offsetWidth - 50;
+    renderer.resize(div.offsetWidth - 20, div.offsetHeight);
+    MAX_X = div.offsetWidth - 20;
     context = renderer.getContext();
 }
 
@@ -132,7 +132,13 @@ function make_measures(purs_measures: any): StaveNote[][] {
         }
     }
 
-    return json_measures.map(jm => jm.flatMap(d => notes_from_drawable(d)));
+    function beamify(beamed_notes: any[]): any[] {
+        if(beamed_notes.length <= 1 || beamed_notes[0].isRest()) return beamed_notes;
+        beams.push(new Beam(beamed_notes));
+        return beamed_notes;
+    }
+
+    return json_measures.map(jm => jm.flatMap(bg => beamify(bg.flatMap(d => notes_from_drawable(d)))));
 }
 
 export function engrave(purs_measures: any): void {
@@ -149,7 +155,7 @@ export function engrave(purs_measures: any): void {
     const START_X = 10;
     const START_Y = 40;
     const EXTRA_SPACE = 50;
-    const MUL = 1.5; // multiplier
+    const MUL = 1.75; // multiplier
 
     const calc_width = w => w * MUL + EXTRA_SPACE;
 

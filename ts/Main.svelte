@@ -4,7 +4,16 @@
     import { compile } from './purs-bridge'
     import { writable } from 'svelte/store';
 
-    let text_input = "1 2 3 4";
+    let text_input =
+`(Ft Ft) 2 {-}a face --..
+e 2 {'}A PtfF PtfF
+[2] {'}e {'}3 {'}a {'}&
+[1] {-}a fAce (_..) (z_x)
+e a (-..-) (.-..) <16>(x x) a
+(fac fac) fadd fadd --.f
+!-!- -!!- !<8>=! !<8>=!
+tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
+
     let output_div;
     let setup_complete = false;
 
@@ -20,6 +29,7 @@
         if(!setup_complete) return;
 
         let comp_out = compile(text);
+
         if(comp_out.success) {
             err_mesg.set("");
             engrave(comp_out.value);

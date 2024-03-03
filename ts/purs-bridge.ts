@@ -72,8 +72,8 @@ function drawable_note_to_json(drawable: any): drawable_obj {
     }
 }
 
-export function purs_measures_to_json(drawable_measures: any): drawable_obj[][] {
-    return drawable_measures.map(m => m.map(drawable_note_to_json));
+export function purs_measures_to_json(drawable_measures: any): drawable_obj[][][] {
+    return drawable_measures.map(m => m.map(b => b.map(drawable_note_to_json)));
 }
 
 export const unpack_duration = Util.unpackDuration;

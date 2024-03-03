@@ -4,22 +4,24 @@ import Data.Either
 import Data.List
 import Note
 import Prelude
+import Tree
 import Util
 import Word
-import Tree
 
-import Data.Rational ((%))
-import Data.Traversable (sum, traverse)
-import Parse (Settings, sigToR)
-import Timing (TimedGroup(..))
-import Data.Natural (natToInt)
-import Data.Array( zipWith, filter, head)
-import Data.Maybe (fromMaybe)
+import Data.Array (zipWith, filter, head, fromFoldable, length)
 import Data.Int (toNumber)
-
+import Data.Maybe (fromMaybe)
+import Data.Natural (natToInt)
+import Data.Rational (Rational, (%))
+import Data.Traversable (sum, traverse)
 import Debug (spy)
+import Parse (Settings, TimeSig(..), sigDenom, sigToR)
+import Timing (TimedGroup(..))
 
-type DrawableMeasure = Array DrawableNote
+import Data.List as List
+
+type DrawableMeasure = Array BeamedNotes
+type BeamedNotes = Array DrawableNote
 
 data DrawableNote = DrawableRest Duration
                   | DrawableNote Note Duration
@@ -33,7 +35,7 @@ instance Show DrawableNote where
 toDrawable :: Settings -> Array TimedGroup -> Either String (Array DrawableMeasure)
 toDrawable settings = (pure <<< splitEvenTuplets)
                   >=> sectionIntoMeasures settings
-                  >=> (pure <<< map drawMeasure)
+                  >=> (pure <<< map (drawMeasure settings))
 
 splitEvenTuplets :: Array TimedGroup -> Array TimedGroup
 splitEvenTuplets = id -- TODO
@@ -44,7 +46,7 @@ getDuration (TimedNote _ d) = d
 getDuration (TimedRest d) = d
 
 sectionIntoMeasures :: Settings -> Array TimedGroup -> Either String (Array (Array TimedGroup))
-sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (fromFoldable timedGroups)
+sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (List.fromFoldable timedGroups)
     where {timeSig} = settings
           measureDuration = Duration <<< sigToR $ timeSig
           iter :: (Array (Array TimedGroup)) -> (Array TimedGroup) -> Duration -> (List TimedGroup) -> Either String (Array (Array TimedGroup))
@@ -76,8 +78,32 @@ sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (fromFo
                     _ = spy "xxs" d
           _ = spy "groups" timedGroups
 
-drawMeasure :: Array TimedGroup -> DrawableMeasure
-drawMeasure timedGroups = map groupToDrawableNote timedGroups
+beamify :: TimeSig -> Array DrawableNote -> Array BeamedNotes
+beamify timeSig = fromFoldable <<< _beamify (Duration $ 1 % sigDenom timeSig) [] d0 <<< List.fromFoldable
+
+_beamify :: Duration -> Array DrawableNote -> Duration -> List DrawableNote -> List BeamedNotes
+_beamify beatNote acc d (Cons x xs) = case x of
+    (DrawableRest _)
+        | length acc == 0 -> [x] : _beamify beatNote [] (addDurMod d dur) xs
+        | otherwise -> acc : [x] : _beamify beatNote [] (addDurMod d dur) xs
+    _
+        | d + dur == beatNote -> (acc <> [x]) : _beamify beatNote [] (addDurMod d dur) xs
+        | d + dur < beatNote -> _beamify beatNote (acc <> [x]) (d + dur) xs
+        | length acc == 0 -> [x] : _beamify beatNote [] (addDurMod d dur) xs
+        | otherwise -> acc : _beamify beatNote [] (addDurMod d dur) (x : xs)
+    where dur = case x of
+                DrawableNote _ y -> y
+                DrawableTuplet _ y _ _ -> y
+                DrawableRest y -> y
+          addDurMod a b
+              | a + b >= beatNote = addDurMod a (b - beatNote)
+              | otherwise = a + b
+_beamify beatNote acc _ Nil
+    | length acc == 0 = Nil
+    | otherwise = acc : Nil
+
+drawMeasure :: Settings -> Array TimedGroup -> DrawableMeasure
+drawMeasure {timeSig} timedGroups = beamify timeSig <<< map groupToDrawableNote $ timedGroups
     where groupToDrawableNote :: TimedGroup -> DrawableNote
           groupToDrawableNote (TimedNote n d) = DrawableNote n d
           groupToDrawableNote (TimedRest d) = DrawableRest d
