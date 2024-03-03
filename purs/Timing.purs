@@ -91,6 +91,13 @@ addTimeMod sig (MeasureTime t1) (MeasureTime t2)
     | t1 + t2 >= sigToR sig = MeasureTime $ t1 + t2 - (sigToR sig)
     | otherwise = MeasureTime $ t1 + t2
 
+ratToNextBeat :: TimeSig -> Rational -> MeasureTime
+ratToNextBeat timeSig = MeasureTime
+                    <<< ((*) (1 % beatNote))
+                    <<< fromInt <<< ceil <<< toNumber
+                    <<< ((*) (beatNote % 1))
+    where beatNote = sigDenom timeSig
+
 treeToTimedGroup :: Tree WeightedNote -> Duration -> TimedGroup
 treeToTimedGroup (Leaf (WeightedNote note _)) duration = TimedNote note duration
 treeToTimedGroup (Leaf (WeightedRest _)) duration = TimedRest duration
@@ -125,10 +132,18 @@ wordToTime settings lastTimeInfo (AbsoluteWord _time _) = asserts *> Right res
         _ = spy "res" res
 wordToTime {timeSig} lastTimeInfo (RelativeWord _ duration) = Right res
     where
-        {defEnd: lastDefEnd} = lastTimeInfo
-        end = addDurationMod timeSig lastDefEnd duration
+        {defEnd: lastDefEnd, earlyEnd} = lastTimeInfo
+        -- end = addDurationMod timeSig lastDefEnd duration
+        MeasureTime earlyEndR  = earlyEnd
+        nextBeat = ratToNextBeat timeSig $ earlyEndR
+        minusMod x y = subTimeMod timeSig x y
+        nextBeatBetweenEnds = (nextBeat `minusMod` earlyEnd) + (lastDefEnd `minusMod` nextBeat) < d1
+        start = if nextBeatBetweenEnds
+                then nextBeat
+                else lastDefEnd
+        end = addDurationMod timeSig start duration
         res =
-            { start: lastDefEnd
+            { start
             , earlyEnd: end
             , defEnd: end
             }
@@ -166,17 +181,11 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ note) 
         {start: nextStart} = nextTimeI
         (MeasureTime startR) = start
         inf = Duration (999 % 1)
-        beatNote = sigDenom timeSig
         zeroToOne x
             | x == Duration (0 % 1) = Duration (1 % 1)
             | otherwise = x
         toNextNote = zeroToOne $ subTimeMod timeSig nextStart start
-        toNextBeat = zeroToOne
-                 <<< (flip (subTimeMod timeSig) $ start)
-                 <<< MeasureTime
-                 <<< ((*) (1 % beatNote))
-                 <<< fromInt <<< ceil <<< toNumber
-                 <<< ((*) (beatNote % 1)) $ startR
+        toNextBeat = zeroToOne <<< (flip (subTimeMod timeSig) $ start) <<< ratToNextBeat timeSig $ startR
         _ = spy ">" [toNextNote, toNextBeat, defDuration]
         duration = foldl min inf [toNextNote, toNextBeat, defDuration]
         timedNote = TimedNote note duration
