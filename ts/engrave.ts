@@ -149,7 +149,7 @@ export function engrave(purs_measures: any): void {
     const START_X = 10;
     const START_Y = 40;
     const EXTRA_SPACE = 50;
-    const MUL = 1.75; // multiplier
+    const MUL = 1.5; // multiplier
 
     const calc_width = w => w * MUL + EXTRA_SPACE;
 

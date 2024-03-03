@@ -19,6 +19,7 @@ import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Enum (defaultToEnum)
 import Data.Foldable (foldl)
+import Data.Unit (unit, Unit)
 import Data.Int (fromString, round)
 import Data.List.Types (toList)
 import Data.Traversable (traverse)
@@ -199,16 +200,17 @@ parseNumber = intToNat <.> stoi' =<< charListToStr <<< toList <$> many1 digit
               Just i -> pure i
               Nothing -> fail $ "Number out of bounds: `" <> s <> "`"
 
--- word-group => "(" (spaces duration-word spaces)+ ")"
+-- word-group => "(" (spaces (duration-word | "_") spaces)+ ")"
 
 -- (monad deferred to avoid circular value dependency)
 _parseWordGroup :: Unit -> ParseFn Word
-_parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 $  parseSpaces*> parseDurationWord <* parseSpaces)) >>= wrapUp
+_parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 $  parseSpaces*> parseWordGroupItem <* parseSpaces)) >>= wrapUp
     where inParens = between (string "(") (string ")")
-          wrapUp :: Array Word -> ParseFn Word
+          wrapUp :: Array (Either Unit Word) -> ParseFn Word
           wrapUp words = do
-              {defGroupDuration} <- ask
-              let toTup (RelativeWord t d) = pure $ Tuple t d
+              {defGroupDuration, defShort} <- ask
+              let toTup (Right (RelativeWord t d)) = pure $ Tuple t d
+                  toTup (Left unit) = pure $ Tuple (Leaf $ WeightedRest n1) defShort
                   toTup _ = fail "Can't use word with explicit time in group"
               tree <- tupsToTree <$> traverse toTup words
               pure $ RelativeWord tree defGroupDuration
@@ -221,6 +223,8 @@ _parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 $  parseSpaces*
           mulWeight x (WeightedRest weight) = WeightedRest (x * weight)
           tupsToTree :: Array (Tuple (Tree WeightedNote) Duration) -> Tree WeightedNote
           tupsToTree tups = Internal $ zipWith (\t n -> (mulWeight n) <$> t) (map fst $ tups) (ratsToNats <<< map normalize $ tups)
+          parseWordGroupItem = Right <$> parseDurationWord
+                           <|> Left unit <$ string "_"
 
 -- spaces => (' ' | '\t' | '\n' | ...)*
 
@@ -331,7 +335,7 @@ parseStroke = do
      <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
     )
 
--- modifier => { mod-flag+ }
+-- modifier => "{" mod-flag+ "}"
 
 parseModifier :: ParseFn (Note -> Note)
 parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
@@ -354,6 +358,8 @@ parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
            <|> string "L"  $> (\n -> n {stick = StrongLeft})
            <|> string "R"  $> (\n -> n {stick = StrongRight})
            <?> "modifier flag"
+
+-- duration-spec => "<" (2|4|8|16|32) ">"
 
 parseDurationSpec :: ParseFn Duration
 parseDurationSpec = inAngles $ ((\n -> Duration (1 % natToInt n)) <$> parseNumber) >>= validateDuration
