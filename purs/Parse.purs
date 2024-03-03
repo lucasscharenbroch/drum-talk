@@ -41,7 +41,9 @@ sigDenom (TimeSig n d) = natToInt d
 type Settings =
     { timeSig :: TimeSig
     , minDuration :: Duration
-    , defDuration :: Duration
+    , defShort :: Duration
+    , defLong :: Duration
+    , defGroupDuration :: Duration
     , defNote :: Note
     }
 
@@ -129,12 +131,12 @@ parseDurationWord = (parseDurationSpec <* parseSpaces >>= _withDuration)
 
 parseModifiedWord :: ParseFn Word
 parseModifiedWord = do
-    {defNote, defDuration} <- ask
+    {defNote, defShort} <- ask
     let modDurNoteToWord mod duration note = RelativeWord (noteToTree $ mod note) duration
     let _parseModified mod = (\(Tuple t n) -> AbsoluteWord t $ mod n) <$> parseTimeArtic
                         <|> (flip AbsoluteWord $ mod defNote) <$> parseTime
                         <|> uncurry (modDurNoteToWord mod) <$> parseMiscSound
-                        <|> modDurNoteToWord mod defDuration <$> parseStroke
+                        <|> modDurNoteToWord mod defShort <$> parseStroke
     option id parseModifier >>= _parseModified
 
 -- time-artic => spelled-number
@@ -205,11 +207,11 @@ _parseWordGroup _ = (fromFoldable <<< toList <$> inParens (many1 $  parseSpaces*
     where inParens = between (string "(") (string ")")
           wrapUp :: Array Word -> ParseFn Word
           wrapUp words = do
-              {defDuration} <- ask
+              {defGroupDuration} <- ask
               let toTup (RelativeWord t d) = pure $ Tuple t d
                   toTup _ = fail "Can't use word with explicit time in group"
               tree <- tupsToTree <$> traverse toTup words
-              pure $ RelativeWord tree defDuration
+              pure $ RelativeWord tree defGroupDuration
           ratsToNats :: Array Rational -> Array Natural
           ratsToNats rs = map (intToNat <<< round <<< toNumber <<< (\r -> numerator r * (_lcm / denominator r))) rs
               where _lcm = foldl lcm (fromInt 1) (map denominator rs)
@@ -270,11 +272,11 @@ rudiments = [
 
 parseRudiment :: ParseFn Word
 parseRudiment = do
-    {defNote, defDuration} <- ask
+    {defNote, defGroupDuration} <- ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    let mkRelWord tree = RelativeWord tree (defDuration * (Duration (2 % 1))) -- every rudiment takes up 2 * defDuration
+    let mkRelWord tree = RelativeWord tree (defGroupDuration)
     let _fToPf fToKey f = (\b -> WeightedNote (f.trans $ defNote' b) f.duration) <$> capString (fToKey f) <* many (char '-')
     let fToPfShort = _fToPf (\f -> f.short)
     let fToPfLong = _fToPf (\f -> f.long)
@@ -287,15 +289,14 @@ parseRudiment = do
 
 parseMiscSound :: ParseFn (Tuple Duration Note)
 parseMiscSound = do
-    {defDuration, defNote} <- ask
-    let halfDefDuration = defDuration / (Duration $ 2 % 1)
+    {defShort, defLong, defNote} <- ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    (    Tuple defDuration <<< defNote' <$> capString' "ta"
-     <|> Tuple defDuration <<< defNote' <$> capString' "da"
-     <|> Tuple halfDefDuration <<< defNote' <$> capString' "tuh"
-     <|> Tuple halfDefDuration <<< defNote' <$> capString' "duh"
+    (    Tuple defLong <<< defNote' <$> capString' "ta"
+     <|> Tuple defLong <<< defNote' <$> capString' "da"
+     <|> Tuple defShort <<< defNote' <$> capString' "tuh"
+     <|> Tuple defShort <<< defNote' <$> capString' "duh"
     )
 
 -- stroke => "tap" | "t" | "." | "!"

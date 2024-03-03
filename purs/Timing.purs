@@ -123,11 +123,11 @@ wordToTime settings lastTimeInfo (AbsoluteWord _time _) = asserts *> Right res
         asserts = validateStartTime settings _time
         time = timeToMeasureTime settings lastTimeInfo _time
         _ = spy "time" time
-        {defDuration, minDuration, timeSig} = settings
+        {defShort, minDuration, timeSig} = settings
         res =
             { start: time
             , earlyEnd: addDurationMod timeSig time minDuration
-            , defEnd: addDurationMod timeSig time defDuration
+            , defEnd: addDurationMod timeSig time defShort
             }
         _ = spy "res" res
 wordToTime {timeSig} lastTimeInfo (RelativeWord _ duration) = Right res
@@ -176,18 +176,17 @@ calcDurationAndRests {timeSig} (Tuple thisTimeI nextTimeI) (CompleteWord _ tree 
               | otherwise = _res
 calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ note) = res
     where
-        {timeSig, defDuration} = settings
+        {timeSig} = settings
         {start} = thisTimeI
         {start: nextStart} = nextTimeI
         (MeasureTime startR) = start
-        inf = Duration (999 % 1)
         zeroToOne x
             | x == Duration (0 % 1) = Duration (1 % 1)
             | otherwise = x
         toNextNote = zeroToOne $ subTimeMod timeSig nextStart start
         toNextBeat = zeroToOne <<< (flip (subTimeMod timeSig) $ start) <<< ratToNextBeat timeSig $ startR
-        _ = spy ">" [toNextNote, toNextBeat, defDuration]
-        duration = foldl min inf [toNextNote, toNextBeat, defDuration]
+        _ = spy ">" [toNextNote, toNextBeat]
+        duration = min toNextNote toNextBeat
         timedNote = TimedNote note duration
         res
             | toNextNote - duration > d0 = [timedNote, TimedRest (toNextNote - duration)]

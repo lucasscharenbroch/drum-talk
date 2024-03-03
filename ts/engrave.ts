@@ -27,9 +27,12 @@ import {
 
 let renderer, context;
 
+let MAX_X;
+
 export function init(div: HTMLDivElement) {
     renderer = new Renderer(div, Renderer.Backends.SVG);
-    renderer.resize(div.offsetHeight, div.offsetWidth);
+    renderer.resize(div.offsetWidth - 50, div.offsetHeight);
+    MAX_X = div.offsetWidth - 50;
     context = renderer.getContext();
 }
 
@@ -143,7 +146,6 @@ export function engrave(purs_measures: any): void {
     let f = new Formatter();
 
     const DY = 120; // vertical distance between staves
-    const MAX_X = 700; // max width of a line
     const START_X = 10;
     const START_Y = 40;
     const EXTRA_SPACE = 50;

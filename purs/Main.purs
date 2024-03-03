@@ -79,7 +79,9 @@ defaultSettings :: Settings
 defaultSettings =
     { timeSig: TimeSig n4 n4
     , minDuration: d32
-    , defDuration: d8
+    , defShort: d16
+    , defLong: d8
+    , defGroupDuration: d4
     , defNote: { numGraceNotes: n0
                , stroke: Tap
                , articulation: Normal
