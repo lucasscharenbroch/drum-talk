@@ -5,6 +5,7 @@ import Data.Natural (Natural)
 import Data.Generic.Rep
 import Data.Show.Generic
 import Data.Show
+import Data.Eq
 
 data Stroke = Tap
             | Double
