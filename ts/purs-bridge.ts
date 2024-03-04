@@ -1,14 +1,16 @@
 import { compile as _compile, defaultSettings } from '../output/Main'
 import { isRight } from '../output/Util'
-import { intToNat } from '../output/Data.Natural'
-import { floor } from '../output/Data.Number'
 import * as Parse from '../output/Parse'
 import * as Drawable from '../output/Drawable';
 import * as Note from '../output/Note';
 import * as Util from '../output/Util'
+import * as Rational from '../output/Data.Rational'
+
+const toRational = Rational.toRational(Rational.toRationalInt);
 
 export const default_settings = defaultSettings;
-export const mk_sig = (x, y) => Parse.TimeSig.create(intToNat(floor(x)))(intToNat(floor(y)));
+export const mk_signature = (x, y) => Parse.TimeSig.create(x)(y);
+export const mk_duration = x => toRational(1)(x); // (duration is newtype)
 
 export function compile(settings: any, s: string): {success: boolean, value: any} {
     let res = _compile(settings)(s);
