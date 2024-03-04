@@ -30,6 +30,8 @@ data Stick = StrongLeft
            | WeakLeft
            | WeakRight
 
+derive instance Eq Stick
+
 derive instance genericStick :: Generic Stick _
 instance Show Stick where
     show = genericShow
