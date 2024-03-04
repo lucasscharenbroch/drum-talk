@@ -4,7 +4,6 @@ import Data.Either
 import Note
 import Parse
 import Prelude
-import Timing
 import Util
 import Word
 import Drawable
@@ -15,19 +14,20 @@ import Data.Rational ((%))
 import Effect (Effect)
 import Effect.Console (log)
 import Sticking (alternateSticking)
-import Timing (TimedGroup(..))
+import Timing (TimedGroup(..), timeify, splitEvenTuplets)
 
 compile :: Settings -> String -> Either String (Array DrawableMeasure)
 compile settings = parse settings
                >=> timeify settings
                >=> (pure <<< alternateSticking)
+               >=> (pure <<< splitEvenTuplets)
                >=> toDrawable settings
 
 cases :: Array String
 cases = [
   -- "2 3 2 2"
   -- "paradiddle"
-  "[2] e"
+  "1 2 3 4"
   -- "1 & a e a 3 & 4 e a"
   -- "1 2 3"
   -- "ta tuh ta ta tuh da da tuh da duh"

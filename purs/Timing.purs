@@ -53,7 +53,7 @@ timeify settings words = validateSettings settings *> res
         res = do
             times <- scanlM (wordToTime settings) zeroI words'
             let timeDiff = zip times (drop 1 times <> [zeroI])
-            pure <<< splitEvenTuplets <<< fromMaybe [] <<< tail <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words'
+            pure <<< fromMaybe [] <<< tail <<< concat $ zipWith (calcDurationAndRests settings) timeDiff words'
 
 validateSettings :: Settings -> Either String Unit
 validateSettings {timeSig: TimeSig sigNum sigDenom} = res
