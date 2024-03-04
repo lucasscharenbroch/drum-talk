@@ -86,7 +86,7 @@ defaultSettings =
     , defNote: { numGraceNotes: n0
                , stroke: Tap
                , articulation: Normal
-               , stick: WeakRight
+               , stick: NeutralStick
                }
     }
 

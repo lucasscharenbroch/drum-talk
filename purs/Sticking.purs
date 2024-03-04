@@ -20,7 +20,9 @@ isLeft StrongLeft = true
 isLeft _ = false
 
 isRight :: Stick -> Boolean
-isRight = not <<< isLeft
+isRight WeakRight = true
+isRight StrongRight = true
+isRight _ = false
 
 isStrong :: Stick -> Boolean
 isStrong StrongLeft = true
@@ -37,6 +39,16 @@ alternate StrongLeft = StrongRight
 alternate StrongRight = StrongLeft
 alternate WeakLeft = WeakRight
 alternate WeakRight = WeakLeft
+alternate NeutralStick = NeutralStick
+
+stickNE :: Stick -> Stick -> Boolean
+stickNE NeutralStick _ = false
+stickNE _ NeutralStick = false
+stickNE WeakLeft StrongLeft = false
+stickNE StrongLeft WeakLeft = false
+stickNE WeakRight StrongRight = false
+stickNE StrongRight WeakRight = false
+stickNE x y = x /= y
 
 alternateSticking :: Array TimedGroup -> Array TimedGroup
 alternateSticking = fromFoldable <<< _alternateSticking StrongLeft <<< List.fromFoldable
@@ -60,6 +72,8 @@ _alternateSticking _ Nil = Nil
 _alternateTree :: Stick -> Stick -> Tree WeightedNote -> {s :: Stick, t :: Tree WeightedNote, o :: Stick}
 _alternateTree s o l@(Leaf (WeightedRest _)) = {s, t: l, o}
 _alternateTree s o l@(Leaf (WeightedNote note nat))
+    | note.stick == NeutralStick = let s' = toStrong $ alternate s
+                                   in {s: s', t: (Leaf (WeightedNote (note {stick = s'}) nat)), o: s'}
     | isStrong note.stick = {s: note.stick, t: l, o: note.stick}
     | isStrong o && (isRight s == isRight note.stick) = {s: alternate note.stick, t: (Leaf $ WeightedNote note {stick = alternate note.stick} nat), o: note.stick}
     | isRight s /= isRight o = {s: alternate note.stick, t: (Leaf $ WeightedNote note {stick = alternate note.stick} nat), o: note.stick}

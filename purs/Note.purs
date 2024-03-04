@@ -29,6 +29,7 @@ data Stick = StrongLeft
            | StrongRight
            | WeakLeft
            | WeakRight
+           | NeutralStick
 
 derive instance Eq Stick
 
