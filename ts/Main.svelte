@@ -3,6 +3,7 @@
     import { init, engrave } from './engrave'
     import { compile } from './purs-bridge'
     import { writable } from 'svelte/store';
+    import Settings from './Settings.svelte'
 
     let text_input =
 `(Ft Ft) 2 {-}a face --..
@@ -19,20 +20,26 @@ tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
 
     let err_mesg = writable("");
 
+    let settings, time_signature;
+
+    function sig_to_string(sig): string {
+        return sig.value0 + "/" + sig.value1;
+    }
+
     function set_up_engraving() {
         init(output_div);
         setup_complete = true;
-        do_compile(text_input);
+        do_compile(settings, text_input);
     }
 
-    function do_compile(text: string) {
+    function do_compile(_settings: any, text: string) {
         if(!setup_complete) return;
 
-        let comp_out = compile(text);
+        let comp_out = compile(_settings, text);
 
         if(comp_out.success) {
             err_mesg.set("");
-            engrave(comp_out.value);
+            engrave(sig_to_string(time_signature), comp_out.value);
         } else {
             err_mesg.set(comp_out.value);
         }
@@ -40,7 +47,7 @@ tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
 
     onMount(set_up_engraving);
 
-    $: do_compile(text_input);
+    $: do_compile(settings, text_input);
 </script>
 
 <h1>Drum-Talk</h1>
@@ -51,6 +58,7 @@ tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
     </aside>
     <div id="output" bind:this={output_div}></div>
 </main>
+<Settings bind:settings bind:time_signature></Settings>
 
 <style>
     h1 {

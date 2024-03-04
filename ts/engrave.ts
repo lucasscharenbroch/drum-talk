@@ -141,7 +141,7 @@ function make_measures(purs_measures: any): StaveNote[][] {
     return json_measures.map(jm => jm.flatMap(bg => beamify(bg.flatMap(d => notes_from_drawable(d)))));
 }
 
-export function engrave(purs_measures: any): void {
+export function engrave(time_sig: string, purs_measures: any): void {
     context.clear();
     beams = [];
     tuplets = [];
@@ -163,7 +163,6 @@ export function engrave(purs_measures: any): void {
     let widths = voices.map(v => f.preCalculateMinTotalWidth([v]));
 
     const clef = "percussion";
-    const time_sig = "4/4";
 
     // calculate stave positions
 

@@ -1,11 +1,17 @@
 import { compile as _compile, defaultSettings } from '../output/Main'
 import { isRight } from '../output/Util'
+import { intToNat } from '../output/Data.Natural'
+import { floor } from '../output/Data.Number'
+import * as Parse from '../output/Parse'
 import * as Drawable from '../output/Drawable';
 import * as Note from '../output/Note';
 import * as Util from '../output/Util'
 
-export function compile(s: string): {success: boolean, value: any} {
-    let res = _compile(defaultSettings)(s);
+export const default_settings = defaultSettings;
+export const mk_sig = (x, y) => Parse.TimeSig.create(intToNat(floor(x)))(intToNat(floor(y)));
+
+export function compile(settings: any, s: string): {success: boolean, value: any} {
+    let res = _compile(settings)(s);
 
     return {
         success: isRight(res),
