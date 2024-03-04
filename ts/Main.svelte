@@ -12,7 +12,7 @@ e 2 {'}A PtfF PtfF
 [1] {-}a fAce (_..) (z_x)
 e a (-..-) (.-..) <16>(x x) a
 (fac fac) fadd fadd --.f
-!-!- -!!- !<8>=! !<8>=!
+!-!- -!!- !=! !=!
 tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
 
     let output_div;

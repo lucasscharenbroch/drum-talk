@@ -37,7 +37,7 @@ sigToR :: TimeSig -> Rational
 sigToR (TimeSig n d) = natToInt n % natToInt d
 
 sigDenom :: TimeSig -> Int
-sigDenom (TimeSig n d) = natToInt d
+sigDenom (TimeSig _ d) = natToInt d
 
 type Settings =
     { timeSig :: TimeSig
@@ -127,17 +127,19 @@ parseDurationWord = (parseDurationSpec <* parseSpaces >>= _withDuration)
 -- modified-word => [modifier] time-artic
 --                | [modifier] time
 --                | [modifier] misc-sound
---                | [modifier] stroke
+--                | [modifier] short-stroke
+--                | [modifier] long-stroke
 --                | [modifier] rudiment
 
 parseModifiedWord :: ParseFn Word
 parseModifiedWord = do
-    {defNote, defShort} <- ask
+    {defNote, defShort, defLong} <- ask
     let modDurNoteToWord mod duration note = RelativeWord (noteToTree $ mod note) duration
     let _parseModified mod = (\(Tuple t n) -> AbsoluteWord t $ mod n) <$> parseTimeArtic
                         <|> (flip AbsoluteWord $ mod defNote) <$> parseTime
                         <|> uncurry (modDurNoteToWord mod) <$> parseMiscSound
-                        <|> modDurNoteToWord mod defShort <$> parseStroke
+                        <|> modDurNoteToWord mod defShort <$> parseShortStroke
+                        <|> modDurNoteToWord mod defLong <$> parseLongStroke
     option id parseModifier >>= _parseModified
 
 -- time-artic => spelled-number
@@ -303,16 +305,15 @@ parseMiscSound = do
      <|> Tuple defShort <<< defNote' <$> capString' "duh"
     )
 
--- stroke => "tap" | "t" | "." | "!"
---         | "gock" | "x"
---         | "buzz" | "z"
---         | "flam" | "f"
---         | "drag" | "dr"
---         | "double" | "d" | "-"
---         | "roll" | "="
+-- short-stroke => "tap" | "t" | "." | "!"
+--               | "gock" | "x"
+--               | "buzz" | "z"
+--               | "flam" | "f"
+--               | "drag" | "dr"
+--               | "double" | "d" | "-"
 
-parseStroke :: ParseFn Note
-parseStroke = do
+parseShortStroke :: ParseFn Note
+parseShortStroke = do
     defNote <- (\settings -> settings.defNote) <$> ask
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
@@ -332,8 +333,16 @@ parseStroke = do
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString  "-"
      <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "roll"
-     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
     )
+
+-- long-stroke => "roll" | "="
+parseLongStroke :: ParseFn Note
+parseLongStroke = do
+    defNote <- (\settings -> settings.defNote) <$> ask
+    let defNote' isAccented = if isAccented
+                              then defNote {articulation = Accent}
+                              else defNote
+    (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
 
 -- modifier => "{" mod-flag+ "}"
 

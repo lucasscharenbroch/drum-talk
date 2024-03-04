@@ -47,5 +47,6 @@
     #settings {
         display: flex;
         justify-content: space-evenly;
+        margin: 5vh 0;
     }
 </style>
