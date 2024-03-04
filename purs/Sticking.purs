@@ -78,7 +78,7 @@ _alternateTree s o l@(Leaf (WeightedNote note nat))
     | isStrong o && (isRight s == isRight note.stick) = {s: alternate note.stick, t: (Leaf $ WeightedNote note {stick = alternate note.stick} nat), o: note.stick}
     | isRight s /= isRight o = {s: alternate note.stick, t: (Leaf $ WeightedNote note {stick = alternate note.stick} nat), o: note.stick}
     | otherwise = {s: note.stick, t: l, o: note.stick}
-_alternateTree s o (Internal ts) = {s: toStrong resS, t: Internal resTs, o: toStrong resO}
+_alternateTree s o (Internal ts) = {s: toStrong resS, t: Internal resTs, o: toStrong resS}
     where rec :: Tree WeightedNote -> State (Tuple Stick Stick) (Tree WeightedNote)
           rec x = do (Tuple _s _o) <- get
                      let {s: s', t: t', o: o'} = _alternateTree _s _o x
