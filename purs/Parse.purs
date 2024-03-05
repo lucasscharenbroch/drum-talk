@@ -239,8 +239,14 @@ parseSpaces = skipSpaces
 --           | "pataflafla" | "ptff"
 --           | "twentyfive" | "ttf"
 --           | "ratamacue" | "rtmc"
---           | paradiddle
---           | triplet
+--           | "paradiddle" | "padd"
+--           | "paraparadiddle" | "papadd"
+--           | "paraparaparadiddle" | "papapadd"
+--           | "paradiddlediddle" | "padddd"
+--           | "flamadiddle" | "fadd"
+--           | "dragadiddle" | "dradd"
+--           | "triplet" | "tpl"
+--           | "swipulet" | "sat"
 -- * any syllable of a rudiment may have a modifier
 
 type RudimentFragment =
@@ -263,7 +269,7 @@ rudiments = [
     [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "flam" "f" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
-    [frag "drag" "dr" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
+    [frag "drag" "dr" n1 rd, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "tri" "t" n1 r, frag "pu" "p" n1 l, frag "let" "l" n1 r],
     [frag "swi" "s" n1 rf, frag "pu" "a" n1 r, frag "let" "t" n1 l]
 ]
@@ -333,7 +339,6 @@ parseShortStroke = do
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString  "-"
-     <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "roll"
     )
 
 -- long-stroke => "roll" | "="
@@ -343,7 +348,9 @@ parseLongStroke = do
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
-    (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
+    (   (\b -> (defNote' b) {stroke = LongRoll})  <$> capString  "="
+    <|> (\b -> (defNote' b) {stroke = LongRoll})  <$> capString' "roll"
+    )
 
 -- modifier => "{" mod-flag+ "}"
 
@@ -351,7 +358,8 @@ parseModifier :: ParseFn (Note -> Note)
 parseModifier = foldl (flip (<<<)) id <$> inBraces (many parseModFlag)
     where inBraces = between (string "{") (string "}")
 
--- mod-flag => "z" | "-" | "=" | ">" | "^" | "l" | "r" | "L" | "R"
+-- mod-flag => "z" | "-" | "=" | "x" | ">" | "^" | "'"
+--           | "f" | """ | "n" | "l" | "r" | "L" | "R"
 
 parseModFlag :: ParseFn (Note -> Note)
 parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
