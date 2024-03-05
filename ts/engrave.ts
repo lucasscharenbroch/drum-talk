@@ -125,20 +125,26 @@ function make_measures(purs_measures: any): StaveNote[][] {
 
             tuplets.push(new Tuplet(notes, { num_notes: d.value.num_notes, notes_occupied: d.value.notes_occupied}));
 
-            if(should_beam_tuplets && d.value.items.every(x => duration_to_number(x.value.duration) < .25))
+            if(should_beam_tuplets && d.value.items.every(x => duration_to_number(x.value.duration) < .25)) {
                 beams.push(new Beam(notes));
+            }
 
             return notes;
         }
     }
 
-    function beamify(beamed_notes: any[]): any[] {
-        if(beamed_notes.length <= 1 || beamed_notes[0].isRest()) return beamed_notes;
-        beams.push(new Beam(beamed_notes));
-        return beamed_notes;
+    function drawable_to_beamed_notes(drawables: any) {
+        let notes = drawables.flatMap(d => notes_from_drawable(d));
+        let any_is_tuplet = drawables.some(x => x.is_tuplet);
+
+        if(!any_is_tuplet && notes.length > 1 && !notes[0].isRest()) {
+            beams.push(new Beam(notes));
+        }
+
+        return notes;
     }
 
-    return json_measures.map(jm => jm.flatMap(bg => beamify(bg.flatMap(d => notes_from_drawable(d)))));
+    return json_measures.map(jm => jm.flatMap(drawable_to_beamed_notes));
 }
 
 export function engrave(time_sig: string, purs_measures: any): void {
