@@ -1,9 +1,9 @@
 <h2 id="language">The Language</h2>
 <h3>Counting (Absolute Words)</h3>
 <ul>
-    <li>1, 2, 3, 4, 5, 6, ...</li>
-    <li>one, two, three, four, five, six, ...</li>
-    <li>e, and, &, +, a, ah</li>
+    <li>1, 2, 3, 4, 5, 6, ... (measure-relative)</li>
+    <li>one, two, three, four, five, six, ... (measure-relative)</li>
+    <li>e, and, &, +, a, ah (beat-relative)</li>
 </ul>
 <h3>Strokes (Relative Words)</h3>
 <ul>
@@ -70,6 +70,16 @@
     <li>&lt;16&gt;: sixteenth</li>
     <li>&lt;32&gt;: thirty-second</li>
 </ul>
+<h3>Time Specification</h3>
+<p>
+    The following can be placed before relative words to specify the exact time the word should be played.
+    Measure-relative time-specifications can also be placed before beat-relative absolute words.
+</p>
+<ul>
+    <li>[1], [2], [3], ... (measure-relative)</li>
+    <li>[e], [&], [a], [ah] (beat-relative)</li>
+</ul>
+
 
 <style>
     h2, h3 {
