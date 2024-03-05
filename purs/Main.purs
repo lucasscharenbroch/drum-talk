@@ -8,13 +8,8 @@ import Prelude
 import Util
 import Word
 
-import Control.Comonad.Env (local)
-import Data.Array (intercalate)
-import Data.Rational ((%))
-import Effect (Effect)
-import Effect.Console (log)
 import Sticking (alternateSticking)
-import Timing (TimedGroup(..), dissolvePow2Tuplets, splitEvenTuplets, timeify)
+import Timing (dissolvePow2Tuplets, splitEvenTuplets, timeify)
 
 compile :: Settings -> String -> Either String (Array DrawableMeasure)
 compile settings = parse settings
@@ -23,59 +18,6 @@ compile settings = parse settings
                >=> (pure <<< dissolvePow2Tuplets)
                >=> (pure <<< splitEvenTuplets)
                >=> toDrawable settings
-
-cases :: Array String
-cases = [
-  -- "2 3 2 2"
-  -- "paradiddle"
-  "1 2 3 4"
-  -- "1 & a e a 3 & 4 e a"
-  -- "1 2 3"
-  -- "ta tuh ta ta tuh da da tuh da duh"
-  -- "<2>(tap tap (tap tap))"
-  -- "e"
-  -- "1 e &"
-  -- "a a a a a a a a a a"
-  -- "ah ah a",
-  -- "and ah one e and a two e and",
-  -- "1 [2] &"
-  -- "PtfF ft ft f"
-  -- "da"
-  -- "duh",
-  -- "duh da duh da duh da duh da da duh da duh",
-  -- "flamtap",
-  -- "FlamTap",
-  -- "Flam---Tap",
-  -- "f-t",
-  -- "PataflaflA",
-  -- "{z}tap",
-  -- "{z}one",
-  -- "twentyfive"
-  -- "twen-{z}ty-five",
-  -- "{zq}"
-  -- "one two three 1e&a"
-  -- "tap tap flamtap flam flam tap flam"
-  -- "[1] & 2e&"
-  -- "(tap tap tap)"
-  -- "(da duh duh da)"
-  -- "<4> ta"
-  -- "<16> (<8> tuh ta ta)"
-  -- "(({\"}tuh tuh tuh) ta)"
-  -- "(one two)"
-  -- "papapadd"
-  -- "padddd"
-  -- "paradiddlediddle"
-  -- "<32> paraParaParadiddle"
-  -- (bad)
-  -- "paddd"
-  -- "_",
-  -- "xyz",
-]
-
-test :: Either String Int -> Int
-test esa = case esa of
-    (Left s) -> 3
-    (Right i) -> i
 
 defaultSettings :: Settings
 defaultSettings =
@@ -90,8 +32,3 @@ defaultSettings =
                , stick: NeutralStick
                }
     }
-
-main :: Effect Unit
-main = do
-  -- log <<< intercalate "\n" <<< map show $ map (parse defaultSettings) cases
-  log <<< intercalate "\n" $ map (show <<< compile defaultSettings) cases

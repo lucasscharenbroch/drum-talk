@@ -26,11 +26,6 @@ data DrawableNote = DrawableRest Duration
                   | DrawableNote Note Duration
                   | DrawableTuplet (Array DrawableNote) Duration Number Number
 
-instance Show DrawableNote where
-    show (DrawableRest d) = "(Drawable Rest " <> show d <> ")"
-    show (DrawableNote n d) = "(Drawable note " <> show n <> " " <> show d <> ")"
-    show (DrawableTuplet ns d x y) = "(Drawable tuplet " <> show ns <> " " <> show d <> " " <> show x <> ":" <> show y <> ")"
-
 toDrawable :: Settings -> Array TimedGroup -> Either String (Array DrawableMeasure)
 toDrawable settings = (pure <<< splitEvenTuplets)
                   >=> sectionIntoMeasures settings

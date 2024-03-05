@@ -14,13 +14,8 @@ to generate this file without the comments in this block.
 , dependencies =
   [ "arrays"
   , "bifunctors"
-  , "console"
-  , "debug"
-  , "effect"
   , "either"
-  , "enums"
   , "foldable-traversable"
-  , "gen"
   , "integers"
   , "js-bigints"
   , "lists"

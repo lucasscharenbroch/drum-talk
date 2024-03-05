@@ -11,15 +11,12 @@ import Tree
 import Util
 import Word
 
-import Control.Monad.Trans.Class (lift)
 import Data.Array (elem, fromFoldable, zipWith)
 import Data.Array.NonEmpty (NonEmptyArray, cons', foldl1, zipWith) as NonEmpty
-import Data.Array.Partial (head, tail)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
-import Data.Enum (defaultToEnum)
 import Data.Foldable (foldl)
-import Data.Unit (unit, Unit)
+import Data.Unit (unit)
 import Data.Int (fromString, round)
 import Data.List.Types (toList)
 import Data.Traversable (traverse)
@@ -28,7 +25,7 @@ import Data.Natural (Natural, intToNat, natToInt)
 import Data.Rational (Rational, (%), numerator, denominator)
 import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Common (toLower, toUpper)
-import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple (Tuple(..), fst, uncurry)
 import JS.BigInt (fromInt, toNumber)
 
 data TimeSig = TimeSig Natural Natural

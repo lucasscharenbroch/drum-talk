@@ -2,12 +2,10 @@ module Timing where
 
 import Data.Either
 import Data.Foldable
-import Data.Generic.Rep
 import Data.List
 import Data.Maybe
 import Data.Rational
 import Data.Show
-import Data.Show.Generic
 import Data.Traversable
 import Data.Tuple
 import Note
@@ -16,23 +14,17 @@ import Tree
 import Util
 import Word
 
-import Control.Monad.Gen (resize)
 import Data.Array (concat, concatMap, drop, foldl, fromFoldable, tail, zip, zipWith, length, head)
 import Data.Int (ceil)
-import Data.Int.Bits (xor, (.&.))
+import Data.Int.Bits ((.&.))
 import Data.List as List
 import Data.Natural (natToInt)
-import JS.BigInt (toInt)
 import Parse (Settings, TimeSig(..), sigDenom, sigToR)
 
 
 data TimedGroup = TimedGroup (Tree WeightedNote) Duration
                 | TimedNote Note Duration
                 | TimedRest Duration
-
-derive instance genericTimedGroup :: Generic TimedGroup _
-instance Show TimedGroup where
-    show = genericShow
 
 type TimeInfo =
     { start :: MeasureTime
@@ -219,6 +211,7 @@ _splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTup
                                   Nothing -> tg : Nil
                                   Just (Tuple before after) -> rec before <> rec after
 _splitEvenTuplets (Cons x xs) = x : _splitEvenTuplets xs
+
 
 dissolvePow2Tuplets :: Array TimedGroup -> Array TimedGroup
 dissolvePow2Tuplets = concatMap dissolve
