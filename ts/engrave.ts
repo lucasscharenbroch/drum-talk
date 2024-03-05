@@ -137,9 +137,9 @@ function make_measures(purs_measures: any, show_sticking: boolean): StaveNote[][
 
     function drawable_to_beamed_notes(drawables: any) {
         let notes = drawables.flatMap(d => notes_from_drawable(d));
-        let any_is_tuplet = drawables.some(x => x.is_tuplet);
+        let any_is_big_tuplet = drawables.some(x => x.is_tuplet && duration_to_number(x.value.duration) >= .25);
 
-        if(!any_is_tuplet && notes.length > 1 && !notes[0].isRest()) {
+        if(!any_is_big_tuplet && notes.length > 1 && !notes[0].isRest()) {
             beams.push(new Beam(notes));
         }
 
