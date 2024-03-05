@@ -4,6 +4,8 @@
 
     export let settings = default_settings;
     export let time_signature;
+    export let show_sticking = true;
+
     let sig_num = "4";
     let sig_denom = "4";
 
@@ -40,6 +42,11 @@
     <div>
         <label for="group-dur">Default Group Duration</label>
         <SelectDuration id="group-dur" bind:value={def_group_dur}></SelectDuration>
+    </div>
+
+    <div>
+        <label for="show-sticking">Show Sticking?</label>
+        <input id="show-sticking" type="checkbox" bind:checked={show_sticking}>
     </div>
 </section>
 

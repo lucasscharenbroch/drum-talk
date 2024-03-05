@@ -87,7 +87,7 @@ const note = (duration: number, is_rest: boolean, modifiers: Modifier[] = [], is
 };
 
 // read measures from purescript object, create StaveNotes
-function make_measures(purs_measures: any): StaveNote[][] {
+function make_measures(purs_measures: any, show_sticking: boolean): StaveNote[][] {
     let json_measures = purs_measures_to_json(purs_measures);
 
     function mk_modifiers(n): Modifier[] {
@@ -107,10 +107,12 @@ function make_measures(purs_measures: any): StaveNote[][] {
         if(n.is_marcato)
             res.push(marcato());
 
-        if(n.stick == "R")
-            res.push(right());
-        else
-            res.push(left());
+        if(show_sticking) {
+            if(n.stick == "R")
+                res.push(right());
+            else
+                res.push(left());
+        }
 
         return res;
     }
@@ -147,13 +149,13 @@ function make_measures(purs_measures: any): StaveNote[][] {
     return json_measures.map(jm => jm.flatMap(drawable_to_beamed_notes));
 }
 
-export function engrave(time_sig: string, purs_measures: any): void {
+export function engrave(time_sig: string, purs_measures: any, show_sticking: boolean): void {
     context.clear();
     beams = [];
     tuplets = [];
     ties = [];
 
-    let measures = make_measures(purs_measures);
+    let measures = make_measures(purs_measures, show_sticking);
 
     let f = new Formatter();
 
