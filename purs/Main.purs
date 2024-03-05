@@ -1,12 +1,12 @@
 module Main where
 
 import Data.Either
+import Drawable
 import Note
 import Parse
 import Prelude
 import Util
 import Word
-import Drawable
 
 import Control.Comonad.Env (local)
 import Data.Array (intercalate)
@@ -14,12 +14,13 @@ import Data.Rational ((%))
 import Effect (Effect)
 import Effect.Console (log)
 import Sticking (alternateSticking)
-import Timing (TimedGroup(..), timeify, splitEvenTuplets)
+import Timing (TimedGroup(..), dissolvePow2Tuplets, splitEvenTuplets, timeify)
 
 compile :: Settings -> String -> Either String (Array DrawableMeasure)
 compile settings = parse settings
                >=> timeify settings
                >=> (pure <<< alternateSticking)
+               >=> (pure <<< dissolvePow2Tuplets)
                >=> (pure <<< splitEvenTuplets)
                >=> toDrawable settings
 

@@ -17,7 +17,7 @@ import Util
 import Word
 
 import Control.Monad.Gen (resize)
-import Data.Array (concat, drop, foldl, fromFoldable, tail, zip, zipWith, length, head)
+import Data.Array (concat, concatMap, drop, foldl, fromFoldable, tail, zip, zipWith, length, head)
 import Data.Int (ceil)
 import Data.Int.Bits (xor, (.&.))
 import Data.List as List
@@ -228,3 +228,16 @@ _splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTup
           _ = spy "==>" (List.head res)
 _splitEvenTuplets (Cons x xs) = x : _splitEvenTuplets xs
     where _ = spy "not splitting" x
+
+dissolvePow2Tuplets :: Array TimedGroup -> Array TimedGroup
+dissolvePow2Tuplets = concatMap dissolve
+    where weightedNoteToDrawable d (WeightedRest w) = TimedRest ((Duration $ natToInt w % 1) * d)
+          weightedNoteToDrawable d (WeightedNote note w) = TimedNote note ((Duration $ natToInt w % 1) * d)
+          dissolve x@(TimedGroup tree@(Internal ts) dur) = res
+              where weightSum = natToInt <<< sum <<< map getWeight <<< flattenTree $ tree
+                    primNotes = [d1, d2, d4, d8, d16, d32]
+                    durUnit = dur * Duration (1 % weightSum)
+                    res
+                        | durUnit `elem` primNotes = map (weightedNoteToDrawable durUnit) $ flattenTree tree
+                        | otherwise = [x]
+          dissolve x = [x]

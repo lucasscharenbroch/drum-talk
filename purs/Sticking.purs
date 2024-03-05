@@ -84,5 +84,5 @@ _alternateTree s o (Internal ts) = {s: toStrong resS, t: Internal resTs, o: toSt
                      let {s: s', t: t', o: o'} = _alternateTree _s _o x
                      put (Tuple s' o')
                      pure t'
-          (Tuple resTs (Tuple resS resO)) = runState (traverse rec ts) (Tuple (toStrong s) (toStrong o))
+          (Tuple resTs (Tuple resS _)) = runState (traverse rec ts) (Tuple (toStrong s) (toStrong o))
           _ = spy "resS" [resS == StrongLeft, resS == WeakLeft, resS == WeakRight, resS == StrongRight]

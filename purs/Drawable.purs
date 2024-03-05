@@ -114,5 +114,5 @@ drawMeasure {timeSig} timedGroups = beamify timeSig <<< map groupToDrawableNote 
           treeToDrawable tree@(Internal ts) d = DrawableTuplet (zipWith treeToDrawable ts durs) d (toNumber totalWeight) (durationToNumber $ d / durUnit)
             where totalWeight = natToInt <<< sum <<< map getWeight <<< flattenTree $ tree
                   _durUnit = d * Duration (1 % totalWeight)
-                  durUnit = fromMaybe d32 <<< head <<< filter ((<) _durUnit) $ [d32, d16, d8, d4, d2, d1]
+                  durUnit = fromMaybe d32 <<< head <<< filter ((<=) _durUnit) $ [d32, d16, d8, d4, d2, d1]
                   durs = map ((*) durUnit <<< Duration <<< (\i -> i % 1) <<< natToInt <<< sum <<< map getWeight <<< flattenTree) $ ts
