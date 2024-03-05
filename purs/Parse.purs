@@ -299,6 +299,8 @@ parseRudiment = do
 
 -- misc-sound => "ta" | "da"
 --             | "tuh" | "duh"
+--             | "dduh" | "ttuh"
+--             | "ddut" | "ttut"
 
 parseMiscSound :: ParseFn (Tuple Duration Note)
 parseMiscSound = do
@@ -306,17 +308,23 @@ parseMiscSound = do
     let defNote' isAccented = if isAccented
                               then defNote {articulation = Accent}
                               else defNote
+    let defDouble' isAccented  = (\n -> n {stroke = Double}) $ defNote' isAccented
+    let defFlam' isAccented  = (\n -> n {numGraceNotes = n1}) $ defNote' isAccented
     (    Tuple defLong <<< defNote' <$> capString' "ta"
      <|> Tuple defLong <<< defNote' <$> capString' "da"
      <|> Tuple defShort <<< defNote' <$> capString' "tuh"
      <|> Tuple defShort <<< defNote' <$> capString' "duh"
+     <|> Tuple defShort <<< defDouble' <$> capString' "ttuh"
+     <|> Tuple defShort <<< defDouble' <$> capString' "dduh"
+     <|> Tuple defShort <<< defFlam' <$> capString' "ttut"
+     <|> Tuple defShort <<< defFlam' <$> capString' "ddut"
     )
 
 -- short-stroke => "tap" | "t" | "." | "!"
---               | "gock" | "x"
+--               | "gock" | "shot" | "x"
 --               | "buzz" | "z"
---               | "flam" | "f"
---               | "drag" | "dr"
+--               | "flam" | "f" | "'""
+--               | "drag" | "dr" | """
 --               | "double" | "d" | "-"
 
 parseShortStroke :: ParseFn Note
@@ -330,13 +338,17 @@ parseShortStroke = do
      <|> (\b -> defNote' b)                        <$> capString "."
      <|> (\_ -> defNote' true)                     <$> capString "!"
      <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "gock"
+     <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "shot"
      <|> (\b -> (defNote' b) {stroke = Gock})      <$> capString' "x"
      <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString' "buzz"
      <|> (\b -> (defNote' b) {stroke = Buzz})      <$> capString' "z"
      <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString' "flam"
      <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString' "f"
+     <|> (\b -> (defNote' b) {numGraceNotes = n1}) <$> capString' "'"
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "drag"
      <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "dr"
+     <|> (\b -> (defNote' b) {numGraceNotes = n2}) <$> capString' "\""
+     <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "double"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString' "d"
      <|> (\b -> (defNote' b) {stroke = Double})    <$> capString  "-"
     )

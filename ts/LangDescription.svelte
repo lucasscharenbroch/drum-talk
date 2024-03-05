@@ -8,10 +8,10 @@
 <h3>Strokes (Relative Words)</h3>
 <ul>
     <li>tap, t, ., !</li>
-    <li>gock, x</li>
+    <li>gock, shot, x</li>
     <li>buzz, z</li>
-    <li>flam, f</li>
-    <li>drag, dr</li>
+    <li>flam, f, '</li>
+    <li>drag, dr, "</li>
     <li>double, d, -</li>
     <li>roll, =</li>
 </ul>
@@ -30,6 +30,13 @@
     <li>dragadiddle, dradd</li>
     <li>tripulet, tpl</li>
     <li>swipulet, sat</li>
+</ul>
+<h3>Misc. Sounds (Relative Words)</h3>
+<ul>
+    <li>da, ta: long tap</li>
+    <li>duh, tuh: short tap</li>
+    <li>dduh, ttuh: double-stroke</li>
+    <li>ddut, ttut: flam</li>
 </ul>
 <h3>Groups</h3>
 <ul><li>Surround any non-absolute words in parenthesis to form a group: groups can be used to form tuplets and/or establish relative sticking</li></ul>
