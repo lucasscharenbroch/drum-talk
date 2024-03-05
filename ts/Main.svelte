@@ -4,6 +4,7 @@
     import { compile } from './purs-bridge'
     import { writable } from 'svelte/store';
     import Settings from './Settings.svelte'
+    import LangDescription from './LangDescription.svelte'
 
     let text_input =
 `(Ft Ft) 2 {-}a face --..
@@ -59,6 +60,7 @@ tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
     <div id="output" bind:this={output_div}></div>
 </main>
 <Settings bind:settings bind:time_signature bind:show_sticking></Settings>
+<LangDescription></LangDescription>
 
 <style>
     h1 {
