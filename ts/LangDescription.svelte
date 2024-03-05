@@ -1,4 +1,4 @@
-<h2>The Language</h2>
+<h2 id="language">The Language</h2>
 <h3>Counting (Absolute Words)</h3>
 <ul>
     <li>1, 2, 3, 4, 5, 6, ...</li>
