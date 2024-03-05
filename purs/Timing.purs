@@ -24,7 +24,7 @@ import Data.List as List
 import Data.Natural (natToInt)
 import Debug (spy)
 import JS.BigInt (toInt)
-import Parse (Settings, TimeSig(..), sigToR, sigDenom)
+import Parse (Settings, TimeSig(..), sigDenom, sigToR)
 
 
 data TimedGroup = TimedGroup (Tree WeightedNote) Duration
@@ -134,10 +134,11 @@ wordToTime {timeSig} lastTimeInfo (RelativeWord _ duration) = Right res
     where
         {defEnd: lastDefEnd, earlyEnd} = lastTimeInfo
         -- end = addDurationMod timeSig lastDefEnd duration
-        MeasureTime earlyEndR  = earlyEnd
+        MeasureTime earlyEndR = earlyEnd
         nextBeat = ratToNextBeat timeSig $ earlyEndR
-        minusMod x y = subTimeMod timeSig x y
-        nextBeatBetweenEnds = (nextBeat `minusMod` earlyEnd) + (lastDefEnd `minusMod` nextBeat) < d1
+        minusMod = subTimeMod timeSig
+        sigDur = Duration $ sigToR timeSig
+        nextBeatBetweenEnds = (nextBeat `minusMod` earlyEnd) + (lastDefEnd `minusMod` nextBeat) < sigDur
         start = if nextBeatBetweenEnds
                 then nextBeat
                 else lastDefEnd
@@ -180,11 +181,12 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ note) 
         {start} = thisTimeI
         {start: nextStart} = nextTimeI
         (MeasureTime startR) = start
-        zeroToOne x
-            | x == Duration (0 % 1) = Duration (1 % 1)
+        zeroTo alt x
+            | x == Duration (0 % 1) = alt
             | otherwise = x
-        toNextNote = zeroToOne $ subTimeMod timeSig nextStart start
-        toNextBeat = zeroToOne <<< (flip (subTimeMod timeSig) $ start) <<< ratToNextBeat timeSig $ startR
+        beatNote = sigDenom timeSig
+        toNextNote = zeroTo (Duration $ sigToR timeSig) $ subTimeMod timeSig nextStart start
+        toNextBeat = zeroTo (Duration $ 1 % beatNote) <<< (flip (subTimeMod timeSig) $ start) <<< ratToNextBeat timeSig $ startR
         _ = spy ">" [toNextNote, toNextBeat]
         duration = min toNextNote toNextBeat
         timedNote = TimedNote note duration
