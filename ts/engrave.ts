@@ -190,9 +190,6 @@ export function engrave(time_sig: string, purs_measures: any, show_sticking: boo
             yp = y + DY;
         }
 
-        console.log("x", x, "w", w, "widths i", widths[i], "i + 1", widths[i + 1]);
-        console.log("next offset", x + w + widths[i + 1] + EXTRA_SPACE);
-
         let s = new Stave(x, y, w);
 
         if(x == START_X) {

@@ -22,7 +22,6 @@ import Data.Int (ceil)
 import Data.Int.Bits (xor, (.&.))
 import Data.List as List
 import Data.Natural (natToInt)
-import Debug (spy)
 import JS.BigInt (toInt)
 import Parse (Settings, TimeSig(..), sigDenom, sigToR)
 
@@ -44,7 +43,6 @@ type TimeInfo =
 timeify :: Settings -> Array Word -> Either String (Array TimedGroup)
 timeify settings words = validateSettings settings *> res
     where
-        _ = spy "words" words
         zero = MeasureTime (0 % 1)
         zeroI = {start: zero, earlyEnd: zero, defEnd: zero}
         {timeSig} = settings
@@ -122,14 +120,12 @@ wordToTime settings lastTimeInfo (AbsoluteWord _time _) = asserts *> Right res
     where
         asserts = validateStartTime settings _time
         time = timeToMeasureTime settings lastTimeInfo _time
-        _ = spy "time" time
         {defShort, minDuration, timeSig} = settings
         res =
             { start: time
             , earlyEnd: addDurationMod timeSig time minDuration
             , defEnd: addDurationMod timeSig time defShort
             }
-        _ = spy "res" res
 wordToTime {timeSig} lastTimeInfo (RelativeWord _ duration) = Right res
     where
         {defEnd: lastDefEnd, earlyEnd} = lastTimeInfo
@@ -187,7 +183,6 @@ calcDurationAndRests settings (Tuple thisTimeI nextTimeI) (AbsoluteWord _ note) 
         beatNote = sigDenom timeSig
         toNextNote = zeroTo (Duration $ sigToR timeSig) $ subTimeMod timeSig nextStart start
         toNextBeat = zeroTo (Duration $ 1 % beatNote) <<< (flip (subTimeMod timeSig) $ start) <<< ratToNextBeat timeSig $ startR
-        _ = spy ">" [toNextNote, toNextBeat]
         duration = min toNextNote toNextBeat
         timedNote = TimedNote note duration
         res
@@ -213,9 +208,6 @@ _splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTup
                         | netSum `mod` 2 /= 0 = Nothing
                         | not ((netSum `div` 2) `elem` prefix) = Nothing
                         | otherwise = Just $ Tuple (fromFoldable before) (fromFoldable after)
-                    _ = spy "prefix sum" prefix
-                    _ = spy "net" netSum
-                    _ = spy "before, after" (Tuple before after)
           rec ts = _splitEvenTuplets $ (TimedGroup (Internal ts) (duration * Duration (1 % 2))) : Nil
           res = case tree of
                 (Leaf _) -> tg : Nil
@@ -226,10 +218,7 @@ _splitEvenTuplets (Cons tg@(TimedGroup tree duration) xs) = res <> _splitEvenTup
                 (Internal arr) -> case split (List.fromFoldable arr) of
                                   Nothing -> tg : Nil
                                   Just (Tuple before after) -> rec before <> rec after
-          _ = spy "splitting up" tg
-          _ = spy "==>" (List.head res)
 _splitEvenTuplets (Cons x xs) = x : _splitEvenTuplets xs
-    where _ = spy "not splitting" x
 
 dissolvePow2Tuplets :: Array TimedGroup -> Array TimedGroup
 dissolvePow2Tuplets = concatMap dissolve

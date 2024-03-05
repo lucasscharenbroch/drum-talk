@@ -11,7 +11,6 @@ import Util
 
 import Data.Array (fromFoldable)
 import Data.List as List
-import Debug (spy)
 import Note (Stick(..), WeightedNote(..))
 
 isLeft :: Stick -> Boolean
@@ -55,17 +54,12 @@ alternateSticking = fromFoldable <<< _alternateSticking StrongLeft <<< List.from
 
 _alternateSticking :: Stick -> List TimedGroup -> List TimedGroup
 _alternateSticking s (r@(TimedRest _):tgs) = r : _alternateSticking s tgs
-    where _ = spy "s" []
 _alternateSticking s (n@(TimedNote note dur):tgs)
     | isStrong note.stick = n : _alternateSticking note.stick tgs
     | otherwise = TimedNote (note {stick = alternate s}) dur : _alternateSticking (alternate s) tgs
-    where _ = spy "s" [isStrong s && isLeft s, (not isStrong $ s) && isLeft s, (not isStrong $ s) && isRight s, isStrong s && isRight s]
-          _ = spy "note" [isStrong ((note {stick = alternate s}).stick) && isLeft ((note {stick = alternate s}).stick), (not isStrong $ ((note {stick = alternate s}).stick)) && isLeft ((note {stick = alternate s}).stick), (not isStrong $ ((note {stick = alternate s}).stick)) && isRight ((note {stick = alternate s}).stick), isStrong ((note {stick = alternate s}).stick) && isRight ((note {stick = alternate s}).stick)]
 _alternateSticking s ((TimedGroup tree dur):tgs) = TimedGroup t' dur : _alternateSticking s' tgs
     where {s: _s', t: t'} = _alternateTree s s tree
           s' = toStrong _s'
-          _ = spy "s" [isStrong s && isLeft s, (not isStrong $ s) && isLeft s, (not isStrong $ s) && isRight s, isStrong s && isRight s]
-          _ = spy "s'" [isStrong s' && isLeft s', (not isStrong $ s') && isLeft s', (not isStrong $ s') && isRight s', isStrong s' && isRight s']
 _alternateSticking _ Nil = Nil
 
 -- (o = original value of previous stick)
@@ -85,4 +79,3 @@ _alternateTree s o (Internal ts) = {s: toStrong resS, t: Internal resTs, o: toSt
                      put (Tuple s' o')
                      pure t'
           (Tuple resTs (Tuple resS _)) = runState (traverse rec ts) (Tuple (toStrong s) (toStrong o))
-          _ = spy "resS" [resS == StrongLeft, resS == WeakLeft, resS == WeakRight, resS == StrongRight]

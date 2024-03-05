@@ -14,7 +14,6 @@ import Data.Maybe (fromMaybe)
 import Data.Natural (natToInt)
 import Data.Rational (Rational, (%))
 import Data.Traversable (sum, traverse)
-import Debug (spy)
 import Parse (Settings, TimeSig(..), sigDenom, sigToR)
 import Timing (TimedGroup(..))
 
@@ -58,25 +57,13 @@ sectionIntoMeasures settings timedGroups = iter [] [] (Duration $ 0 % 1) (List.f
                       where d' = measureDuration - sum
                             x' = TimedNote n d'
                             x'' = TimedRest (d - d')
-                            _ = spy "(n) measure duration" measureDuration
-                            _ = spy "(n) sum" sum
-                            _ = spy "(n) getDuration" (getDuration x)
                   (TimedRest d) -> iter (accs <> [acc <> [x']]) [] (Duration $ 0 % 1) (x'' : xs)
                       where d' = measureDuration - sum
                             x' = TimedRest d'
                             x'' = TimedRest (d - d')
-                            _ = spy "measure duration" measureDuration
-                            _ = spy "sum" sum
-                            _ = spy "getDuration" (getDuration x)
                   _ -> Left "Timed group (tuplet) spans measure" -- TODO try to split? (factor out)
           iter accs [] _ _ = Right accs
-            where _ = spy "accs =>" accs
           iter a b c d = Left $ "Supplied rhythms don't evenly fill measures"
-              where _ = spy "accs" a
-                    _ = spy "acc" b
-                    _ = spy "sum" c
-                    _ = spy "xxs" d
-          _ = spy "groups" timedGroups
 
 beamify :: TimeSig -> Array DrawableNote -> Array BeamedNotes
 beamify timeSig = fromFoldable <<< _beamify (Duration $ 1 % sigDenom timeSig) [] d0 <<< List.fromFoldable
