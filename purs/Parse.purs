@@ -171,7 +171,7 @@ parseTime = (natToTime =<< parseNumber)
         <|> BeatOffset (2 % 4) <$ string "&"
         <|> BeatOffset (2 % 4) <$ string "+"
         <|> BeatOffset (3 % 4) <$ capString' "ah"
-        <|> BeatOffset (4 % 4) <$ capString' "a"
+        <|> BeatOffset (3 % 4) <$ capString' "a"
 
 -- time-spec => "[" time "]"
 
