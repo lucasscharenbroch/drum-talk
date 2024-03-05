@@ -264,7 +264,8 @@ rudiments = [
     [frag "par" "p" n1 r, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "flam" "f" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
     [frag "drag" "dr" n1 rf, frag "a" "a" n1 l, frag "did" "d" n1 r, frag "dle" "d" n1 r],
-    [frag "tri" "t" n1 r, frag "pu" "p" n1 l, frag "let" "l" n1 r]
+    [frag "tri" "t" n1 r, frag "pu" "p" n1 l, frag "let" "l" n1 r],
+    [frag "swi" "s" n1 rf, frag "pu" "a" n1 r, frag "let" "t" n1 l]
 ]
     where frag long short duration trans = {long, short, duration, trans}
           flam n = n {numGraceNotes = n1}
@@ -362,6 +363,7 @@ parseModFlag = string "z"  $> (\n -> n {stroke = Buzz})
            <|> string "'"  $> (\n -> n {numGraceNotes = n1})
            <|> string "f"  $> (\n -> n {numGraceNotes = n1})
            <|> string "\"" $> (\n -> n {numGraceNotes = n2})
+           <|> string "n"  $> (\n -> n {stick = NeutralStick})
            <|> string "l"  $> (\n -> n {stick = WeakLeft})
            <|> string "r"  $> (\n -> n {stick = WeakRight})
            <|> string "L"  $> (\n -> n {stick = StrongLeft})

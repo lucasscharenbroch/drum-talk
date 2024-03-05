@@ -11,7 +11,7 @@
 [2] {'}e {'}3 {'}a {'}&
 [1] {-L}a fAce (_..) (z_x)
 e a (-..-) (.-..) <16>(x x) {L}a
-(fac fac) fadd fadd --.f
+(sat sat) fadd fadd --.f
 !-!- -!!- <2>({r}!{l}={l}! {r}!{l}={l}!)
 tpl 2e&a (ta ta ta ta ta) (tpl tpl)`;
 
